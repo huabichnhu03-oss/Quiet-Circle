@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const server = require(path.join(__dirname, "..", "dist", "index.cjs"));
+const server = require(path.join(__dirname, "_server", "index.cjs"));
 const app = server.default || server;
 
 export default (req, res) => app(req, res);

@@ -3,11 +3,7 @@
   "framework": null,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "dist/**"
-    }
-  },
+  "outputDirectory": "api/_server/public",
   "rewrites": [
     {
       "source": "/(.*)",
