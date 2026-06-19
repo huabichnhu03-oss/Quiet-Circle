@@ -1,0 +1,29 @@
+Act as an expert Frontend Developer and UX Engineer. The previous generation (image_8dc9eb.png) completely failed to replicate the reference designs and is visually incorrect. I need you to rebuild this from scratch, strictly adhering to the core components, layout, and visual fidelity of image_8ea72b.jpg and image_8ea70e.jpg. Stop simplifying the design and stop adding features that were not requested.
+
+CRITICAL CORRECTIONS & HARD RULES (Based on analyzing image_8dc9eb.png's failures):
+
+1. Replicate the Exact Screens from image_8ea72b.jpg:
+
+Daily Plan/Mood Screen (Left): Implement the specific layout: Header text "Tracking mood provides consistent scoring insights." The Daily/Weekly/Monthly selector. The exact grid of seven small, non-labeled, expressive mood circles. The cards for "Today's plan" (working checkboxes) and "Relax mode" (working play button/progress). The "Milestones Achieved" progress bar. Recreate these elements verbatim.
+
+Mood Check-in Screen (Middle): Implement the specific large, individual, color-coded, labeled mood bubbles (like "Happies," "listening to you" bubble). Use the correct, clean pastel gradient background. Stop using the floating, generic icons seen in image_8dc9eb.png. Recreate the exact labels and placement.
+
+Profile/Sleep Screen (Right): Recreate the profile section with Chiara Advani, her profile picture (use a similar avatar icon/placeholder), and specific job titles (Designer, Illustrator, Model). Strictly implement the Sleep Quality section with the exact numerical data (7h 39m, 85.4 BPM AVG) and progress charts. Stop substituting generic charts.
+
+2. Clean-Up and Component Specificity:
+
+REMOVE ALL EXTRA FEATURES: Delete the "Private Chats" section and the "Call for Help" / "Crisis Hotline" buttons from image_8dc9eb.png. They were hallucinated.
+
+Remove Floating Icons: The gradient card in image_8dc9eb.png is generic. It must be replaced by the specific functional mood input seen in the reference middle screen.
+
+Correct Header Text: Replace "Good Evening, N.!" with the actual context of your design, or the general profile header of Chiara Advani.
+
+3. Technical & Aesthetic Refinement (Applying Figma Export Rules):
+
+Strict Component Matching: Use clean Flexbox layouts and Tailwind utilities to mimic the Auto Layout structure seen in your Figma designs (image_8ea72b.jpg). Do not use messy, nested divs that break Auto Layout parsing.
+
+Font and Styling: Apply the correct modern sans-serif font. Recreate the precise glassmorphism (translucency + backdrop blur) and soft shadows of the cards. The current output looks flat and incorrect.
+
+State Management (PWA): Keep all interaction logic (100dvh, strict overflow control, interactive state management for mood choices and checkboxes).
+
+Transitions: Apply smooth Tailwind transitions (duration-300) to all interactive state changes.

@@ -1,0 +1,43 @@
+Act as an expert UX/UI Engineer and Accessibility Specialist. I have a working React/Tailwind prototype, but it currently fails WCAG contrast standards, lacks key user flows, and feels empty. I need you to overhaul the styling for accessibility and implement several new functional prototype screens.
+
+1. WCAG Accessibility & Visual Hierarchy Overhaul (CRITICAL)
+
+Fix Text Transparency: Search the entire codebase for text using opacities (e.g., text-gray-400, opacity-50, text-white/50). Replace all primary text with solid text-slate-900 and secondary/placeholder text with text-slate-600.
+
+Input Fields: Ensure all text inputs and textareas have a solid white background bg-white with a subtle border-slate-300 so the text typed by the user is 100% legible against the gradient backgrounds.
+
+Typography Hierarchy: Increase the font weight of all card titles and page headers to font-bold or font-semibold to establish clear visual hierarchy.
+
+2. New Feature: Login & Onboarding Flow
+
+Create a new Login.tsx view.
+
+Include a clean, glassmorphism UI with standard Email/Password inputs.
+
+Add an 'Onboarding' state right after login that asks 2-3 quick questions (e.g., 'What brings you here today?' with selectable pill tags) before routing the user to the Home Dashboard.
+
+3. New Feature: AI Mental Health Consultant (Triage)
+
+Implement an 'AI Chat' interface. This acts as the first step to help connect users with the right help point.
+
+Add a prominent Floating Action Button (FAB) with a chat icon that sits above the bottom navigation, or add it as a highly visible banner on the Home and Resources screens.
+
+The chat UI should look like a standard messaging thread with a pre-populated greeting from the 'AI Wellness Consultant' offering triage support.
+
+4. Enhanced Emergency & Safety Screen
+
+Update the existing Emergency/SOS screen.
+
+Below the main SOS trigger, add a 'Current Verified Location' card (use a placeholder map background or location pin UI).
+
+Add a 'Help Associate' card showing a mock profile (e.g., 'Sarah M. - On Call Responder') so the user knows exactly who will be receiving their emergency ping.
+
+5. Pre-Populate Community Data
+
+The Community feed currently looks dead. Initialize the state with an array of at least 4 detailed mock posts.
+
+Include varied data: User avatars, names, timestamps, tags (e.g., 'Trans Experiences', 'Advice'), and realistic text content so the feed is instantly scannable and testable.
+
+6. Structural Polish
+
+Ensure the bottom navigation remains pinned and doesn't overlap the new content. If the nav is getting too crowded (6+ items), consolidate 'Resources' and 'Community' under a single 'Explore' tab to keep the tap targets accessible.
