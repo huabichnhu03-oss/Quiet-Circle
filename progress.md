@@ -42,6 +42,7 @@ Work completed in the latest agent session. Use this section to pick up where we
 - Created/fixed `vercel.json` with explicit `builds` + `routes` pointing to `api/index.js`
 - Fixed **“download file instead of website”** bug: server now initializes synchronously in production; `api/index.js` exports Express app directly
 - Fixed **“api/index.js doesn't match any Serverless Functions”** — full project pushed to GitHub (drag-and-drop upload had only uploaded ~16 root files, missing `api/`, `client/`, `server/`)
+- Fixed **FUNCTION_INVOCATION_FAILED (500)** — renamed `api/index.js` → `api/index.cjs`; with `"type": "module"` in package.json, `.js` files are ESM and `require`/`module.exports` silently fail, exporting an empty handler
 
 #### GitHub
 - Initialized git repo locally and pushed full codebase to: **https://github.com/huabichnhu03-oss/Quiet-Circle**
@@ -177,7 +178,7 @@ See `.env.example`. Required for deployment:
 
 ### Architecture
 ```
-Browser → Vercel → api/index.js → dist/index.cjs (Express)
+Browser → Vercel → api/index.cjs → dist/index.cjs (Express)
                                   ├── /api/* routes
                                   └── dist/public/ (React SPA)
 ```
@@ -186,7 +187,7 @@ Browser → Vercel → api/index.js → dist/index.cjs (Express)
 | File | Purpose |
 |------|---------|
 | `vercel.json` | Build config, routes all traffic to `api/index.js` |
-| `api/index.js` | Vercel serverless entry — requires `dist/index.cjs` |
+| `api/index.cjs` | Vercel serverless entry — requires `dist/index.cjs` (must be `.cjs` because package.json has `"type": "module"`) |
 | `script/build.ts` | Builds client (`dist/public/`) + server (`dist/index.cjs`) |
 | `server/index.ts` | Express app; sync init in production for Vercel |
 | `server/static.ts` | Serves `dist/public/` in production |
@@ -240,7 +241,7 @@ npm run dev            # http://localhost:5000
 ```
 .
 ├── api/
-│   └── index.js           # Vercel serverless entry point
+│   └── index.cjs          # Vercel serverless entry point (.cjs required for "type":"module")
 ├── client/                # React frontend (Vite)
 │   └── src/
 │       ├── pages/         # One file per screen/route
