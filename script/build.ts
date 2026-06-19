@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, cp, mkdir } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -61,6 +61,11 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Vercel outputDirectory must not be api/_server/public — that path is stripped
+  // from the serverless bundle. Copy static assets to dist/public for the CDN check.
+  await mkdir("dist/public", { recursive: true });
+  await cp("api/_server/public", "dist/public", { recursive: true });
 }
 
 buildAll().catch((err) => {
