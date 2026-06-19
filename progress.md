@@ -39,10 +39,13 @@ Work completed in the latest agent session. Use this section to pick up where we
 - Added `cross-env` for Windows-compatible npm scripts
 - Pinned Node to `20.x` in `package.json` engines
 - Fixed Windows `reusePort` crash on local `npm start` (only enabled on non-Windows)
-- Created/fixed `vercel.json` with explicit `builds` + `routes` pointing to `api/index.js`
+- Created/fixed `vercel.json` — modern config with `buildCommand` + `functions.includeFiles` (legacy `builds` was ignoring buildCommand, so `dist/` never existed on GitHub deploys)
 - Fixed **“download file instead of website”** bug: server now initializes synchronously in production; `api/index.js` exports Express app directly
 - Fixed **“api/index.js doesn't match any Serverless Functions”** — full project pushed to GitHub (drag-and-drop upload had only uploaded ~16 root files, missing `api/`, `client/`, `server/`)
-- Fixed **FUNCTION_INVOCATION_FAILED (500)** — renamed `api/index.js` → `api/index.cjs`; with `"type": "module"` in package.json, `.js` files are ESM and `require`/`module.exports` silently fail, exporting an empty handler
+- Fixed **FUNCTION_INVOCATION_FAILED (500)** — two causes:
+  1. Legacy `builds` in `vercel.json` **ignored `buildCommand`**, so `dist/` (gitignored) was never built on GitHub/Vercel deploys
+  2. `api/index.js` needed ESM + explicit `(req, res) => app(req, res)` handler (not bare `module.exports = app`)
+- Migrated `vercel.json` to modern config: `buildCommand`, `functions.includeFiles`, `rewrites` (no legacy `builds`)
 
 #### GitHub
 - Initialized git repo locally and pushed full codebase to: **https://github.com/huabichnhu03-oss/Quiet-Circle**
@@ -178,7 +181,7 @@ See `.env.example`. Required for deployment:
 
 ### Architecture
 ```
-Browser → Vercel → api/index.cjs → dist/index.cjs (Express)
+Browser → Vercel → api/index.js → dist/index.cjs (Express)
                                   ├── /api/* routes
                                   └── dist/public/ (React SPA)
 ```
@@ -187,7 +190,7 @@ Browser → Vercel → api/index.cjs → dist/index.cjs (Express)
 | File | Purpose |
 |------|---------|
 | `vercel.json` | Build config, routes all traffic to `api/index.js` |
-| `api/index.cjs` | Vercel serverless entry — requires `dist/index.cjs` (must be `.cjs` because package.json has `"type": "module"`) |
+| `api/index.js` | Vercel serverless entry — ESM handler that loads `dist/index.cjs` |
 | `script/build.ts` | Builds client (`dist/public/`) + server (`dist/index.cjs`) |
 | `server/index.ts` | Express app; sync init in production for Vercel |
 | `server/static.ts` | Serves `dist/public/` in production |
@@ -241,7 +244,7 @@ npm run dev            # http://localhost:5000
 ```
 .
 ├── api/
-│   └── index.cjs          # Vercel serverless entry point (.cjs required for "type":"module")
+│   └── index.js           # Vercel serverless entry point (ESM handler)
 ├── client/                # React frontend (Vite)
 │   └── src/
 │       ├── pages/         # One file per screen/route
