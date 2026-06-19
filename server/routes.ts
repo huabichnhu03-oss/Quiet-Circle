@@ -10,10 +10,10 @@ import {
 import { createMagicLinkToken, consumeMagicLinkToken } from "./auth";
 import { getAppUrl, sendMagicLinkEmail } from "./email";
 
-export async function registerRoutes(
+export function registerRoutes(
   httpServer: Server,
   app: Express
-): Promise<Server> {
+): Server {
   app.get("/api/mood-entries", async (_req, res) => {
     const entries = await storage.getMoodEntries();
     res.json(entries);

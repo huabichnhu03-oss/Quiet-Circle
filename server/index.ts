@@ -59,10 +59,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize routes and server; start listening only outside Vercel
-export const ready = (async () => {
-  await registerRoutes(httpServer, app);
-
+function registerErrorHandler() {
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -75,36 +72,40 @@ export const ready = (async () => {
 
     return res.status(status).json({ message });
   });
+}
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
+function startListening() {
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const listenOptions: { port: number; host: string; reusePort?: boolean } = {
+    port,
+    host: "0.0.0.0",
+  };
+  if (process.platform !== "win32") {
+    listenOptions.reusePort = true;
+  }
+  httpServer.listen(listenOptions, () => {
+    log(`serving on port ${port}`);
+  });
+}
+
+// Production: initialize synchronously so Vercel can require dist/index.cjs safely.
+if (process.env.NODE_ENV === "production") {
+  registerRoutes(httpServer, app);
+  registerErrorHandler();
+  serveStatic(app);
+
+  if (!process.env.VERCEL) {
+    startListening();
+  }
+} else {
+  // Development: Vite setup is async.
+  void (async () => {
+    registerRoutes(httpServer, app);
+    registerErrorHandler();
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
-  }
+    startListening();
+  })();
+}
 
-  // On Vercel, the platform handles incoming connections; skip listen()
-  if (!process.env.VERCEL) {
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || "5000", 10);
-    const listenOptions: { port: number; host: string; reusePort?: boolean } = {
-      port,
-      host: "0.0.0.0",
-    };
-    if (process.platform !== "win32") {
-      listenOptions.reusePort = true;
-    }
-    httpServer.listen(listenOptions, () => {
-      log(`serving on port ${port}`);
-    });
-  }
-})();
-
-// Export the Express app as the default export for Vercel's Node.js runtime
 export default app;
