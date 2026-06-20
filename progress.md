@@ -91,8 +91,8 @@ Work completed in the latest agent session. Use this section to pick up where we
 1. ~~**Wire PostgreSQL storage**~~ — `DatabaseStorage` done; run `npm run db:push` against Neon and set `DATABASE_URL` on Vercel
 2. ~~**Persist auth users**~~ — auth uses `users` table when `DATABASE_URL` is set (verification codes still in-memory until sessions wired)
 3. **Server-side sessions** — `express-session` + `connect-pg-simple` not wired yet; auth state only in `localStorage`
-4. ~~**Confirm Vercel deploy works end-to-end**~~ — https://quiet-circle.vercel.app confirmed live
-5. **Commit & deploy auth refactor** — password + verification code flow is local-only (uncommitted)
+4. ~~**Confirm Vercel deploy works end-to-end**~~ — https://quiet-circle-gamma.vercel.app confirmed live with new auth
+5. **Redeploy `quiet-circle.vercel.app`** — this URL is owned by a *separate* older Vercel project (cannot alias from CLI). User must open Vercel dashboard → find project with `quiet-circle.vercel.app` → Redeploy from GitHub `main` (commit `7e6a1d4`), or delete old project and use `quiet-circle-gamma.vercel.app`
 
 #### MEDIUM — UX / features
 5. **Profile shows hardcoded name** “Chiara Advani” — should read from `localStorage` (`user_name`, `user_email`)
