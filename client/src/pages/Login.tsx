@@ -1,12 +1,18 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 const PASTEL_BG = "linear-gradient(160deg, #ede9fe 0%, #fce7f3 60%, #dbeafe 100%)";
 
+type Mode = "signin" | "signup";
+
 export default function Login() {
+  const [, navigate] = useLocation();
+  const [mode, setMode] = useState<Mode>("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,22 +22,56 @@ export default function Login() {
       setError("Please enter your email address.");
       return;
     }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/magic-link", {
+      if (mode === "signup") {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            name: name.trim(),
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Something went wrong.");
+          return;
+        }
+
+        sessionStorage.setItem("pending_email", email.trim());
+        navigate(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+        return;
+      }
+
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.needsVerification) {
+          sessionStorage.setItem("pending_email", data.email);
+          navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+          return;
+        }
         setError(data.error || "Something went wrong.");
         return;
       }
 
-      setSent(true);
+      localStorage.setItem("user_email", data.email);
+      localStorage.setItem("user_name", data.name);
+      localStorage.setItem("onboarded", "true");
+      navigate("/");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -83,74 +123,117 @@ export default function Login() {
             border: "1px solid rgba(255,255,255,0.6)",
           }}
         >
-          {sent ? (
-            <div className="text-center">
-              <div
-                className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-                style={{ background: "rgba(124, 58, 237, 0.12)" }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="5" width="18" height="14" rx="3" stroke="#7c3aed" strokeWidth="2" />
-                  <path d="M3 7l9 6 9-6" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-bold text-gray-800 mb-2">Check your email</h2>
-              <p className="text-sm text-slate-500 mb-6">
-                We sent a sign-in link to{" "}
-                <span className="font-semibold text-gray-700">{email}</span>.
-                Click the link in the email to continue.
-              </p>
-              <button
-                type="button"
-                data-testid="button-back-to-form"
-                onClick={() => setSent(false)}
-                className="text-sm font-semibold text-violet-600 hover:text-violet-700"
-              >
-                Use a different email
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-1">Sign in with email</h2>
-                <p className="text-sm text-slate-500">
-                  No password needed — we'll email you a secure link.
-                </p>
-              </div>
+          <div className="flex rounded-2xl p-1 mb-5 bg-violet-50">
+            <button
+              type="button"
+              data-testid="tab-signin"
+              onClick={() => { setMode("signin"); setError(""); }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                mode === "signin"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-slate-500"
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              data-testid="tab-signup"
+              onClick={() => { setMode("signup"); setError(""); }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                mode === "signup"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-slate-500"
+              }`}
+            >
+              Create account
+            </button>
+          </div>
 
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 mb-1">
+                {mode === "signin" ? "Welcome back" : "Create your account"}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {mode === "signin"
+                  ? "Sign in with your email and password."
+                  : "We'll send a 6-digit code to verify your email."}
+              </p>
+            </div>
+
+            {mode === "signup" && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600 ml-1" htmlFor="auth-email">
-                  Email address
+                <label className="text-xs font-semibold text-slate-600 ml-1" htmlFor="auth-name">
+                  Name
                 </label>
                 <input
-                  id="auth-email"
-                  data-testid="input-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="auth-name"
+                  data-testid="input-name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-2xl px-4 py-3 text-sm bg-white border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-300 transition-all"
                 />
               </div>
+            )}
 
-              {error && (
-                <p data-testid="text-auth-error" className="text-xs text-red-500 text-center">
-                  {error}
-                </p>
-              )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-600 ml-1" htmlFor="auth-email">
+                Email address
+              </label>
+              <input
+                id="auth-email"
+                data-testid="input-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-2xl px-4 py-3 text-sm bg-white border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-300 transition-all"
+              />
+            </div>
 
-              <button
-                data-testid="button-submit"
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl text-sm font-bold text-white shadow-md active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:scale-100"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
-              >
-                {loading ? "Sending link…" : "Email me a sign-in link"}
-              </button>
-            </form>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-600 ml-1" htmlFor="auth-password">
+                Password
+              </label>
+              <input
+                id="auth-password"
+                data-testid="input-password"
+                type="password"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-2xl px-4 py-3 text-sm bg-white border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-300 transition-all"
+              />
+            </div>
+
+            {error && (
+              <p data-testid="text-auth-error" className="text-xs text-red-500 text-center">
+                {error}
+              </p>
+            )}
+
+            <button
+              data-testid="button-submit"
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold text-white shadow-md active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:scale-100"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+            >
+              {loading
+                ? mode === "signup"
+                  ? "Creating account…"
+                  : "Signing in…"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Sign in"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

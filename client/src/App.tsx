@@ -26,7 +26,7 @@ import Emergency from "@/pages/Emergency";
 import AIChat from "@/pages/AIChat";
 import Login from "@/pages/Login";
 import Onboarding from "@/pages/Onboarding";
-import AuthVerify from "@/pages/AuthVerify";
+import VerifyEmail from "@/pages/VerifyEmail";
 
 const STANDALONE_BG = "linear-gradient(145deg, #c8f5ea 0%, #dcd8f9 50%, #fde4d8 100%)";
 
@@ -48,7 +48,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarded");
-    const isAuthRoute = location === "/login" || location === "/onboarding" || location.startsWith("/auth/");
+    const isAuthRoute =
+      location === "/login" ||
+      location === "/onboarding" ||
+      location === "/verify-email" ||
+      location.startsWith("/auth/");
     if (!onboarded && !isAuthRoute) {
       navigate("/login");
     }
@@ -64,7 +68,7 @@ function Router() {
         {/* Auth / onboarding — no Layout wrapper, full-screen */}
         <Route path="/login" component={Login} />
         <Route path="/onboarding" component={Onboarding} />
-        <Route path="/auth/verify" component={AuthVerify} />
+        <Route path="/verify-email" component={VerifyEmail} />
 
         {/* Standalone screens */}
         <Route path="/checkin" component={CheckIn} />

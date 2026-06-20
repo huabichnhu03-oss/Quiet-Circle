@@ -1,11 +1,23 @@
 import {
-  type User, type InsertUser,
-  type MoodEntry, type InsertMoodEntry,
-  type JournalEntry, type InsertJournalEntry,
-  type Contact, type InsertContact,
-  type CommunityPost, type InsertCommunityPost,
+  type User,
+  type InsertUser,
+  type MoodEntry,
+  type InsertMoodEntry,
+  type JournalEntry,
+  type InsertJournalEntry,
+  type Contact,
+  type InsertContact,
+  type CommunityPost,
+  type InsertCommunityPost,
+  users,
+  moodEntries,
+  journalEntries,
+  contacts,
+  communityPosts,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { desc, eq } from "drizzle-orm";
+import { getDb, hasDatabase } from "./db";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -24,17 +36,17 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private moodEntries: Map<string, MoodEntry>;
-  private journalEntries: Map<string, JournalEntry>;
-  private contacts: Map<string, Contact>;
-  private communityPosts: Map<string, CommunityPost>;
+  private moodEntriesMap: Map<string, MoodEntry>;
+  private journalEntriesMap: Map<string, JournalEntry>;
+  private contactsMap: Map<string, Contact>;
+  private communityPostsMap: Map<string, CommunityPost>;
 
   constructor() {
     this.users = new Map();
-    this.moodEntries = new Map();
-    this.journalEntries = new Map();
-    this.contacts = new Map();
-    this.communityPosts = new Map();
+    this.moodEntriesMap = new Map();
+    this.journalEntriesMap = new Map();
+    this.contactsMap = new Map();
+    this.communityPostsMap = new Map();
 
     this._seedCommunityPosts();
   }
@@ -82,7 +94,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 28800000),
       },
     ];
-    seeds.forEach((p) => this.communityPosts.set(p.id, p));
+    seeds.forEach((p) => this.communityPostsMap.set(p.id, p));
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -102,6 +114,7 @@ export class MemStorage implements IStorage {
       name: insertUser.name ?? null,
       passwordHash: insertUser.passwordHash ?? null,
       passwordSalt: insertUser.passwordSalt ?? null,
+      emailVerified: insertUser.emailVerified ?? false,
       googleId: insertUser.googleId ?? null,
       avatarUrl: insertUser.avatarUrl ?? null,
     };
@@ -110,34 +123,44 @@ export class MemStorage implements IStorage {
   }
 
   async getMoodEntries(): Promise<MoodEntry[]> {
-    return Array.from(this.moodEntries.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return Array.from(this.moodEntriesMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
   async createMoodEntry(entry: InsertMoodEntry): Promise<MoodEntry> {
     const id = randomUUID();
-    const moodEntry: MoodEntry = { ...entry, id, createdAt: new Date(), note: entry.note ?? null };
-    this.moodEntries.set(id, moodEntry);
+    const moodEntry: MoodEntry = {
+      ...entry,
+      id,
+      createdAt: new Date(),
+      note: entry.note ?? null,
+    };
+    this.moodEntriesMap.set(id, moodEntry);
     return moodEntry;
   }
 
   async getJournalEntries(): Promise<JournalEntry[]> {
-    return Array.from(this.journalEntries.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return Array.from(this.journalEntriesMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
   async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
     const id = randomUUID();
-    const journalEntry: JournalEntry = { ...entry, id, createdAt: new Date(), mood: entry.mood ?? null };
-    this.journalEntries.set(id, journalEntry);
+    const journalEntry: JournalEntry = {
+      ...entry,
+      id,
+      createdAt: new Date(),
+      mood: entry.mood ?? null,
+    };
+    this.journalEntriesMap.set(id, journalEntry);
     return journalEntry;
   }
 
   async getContacts(): Promise<Contact[]> {
-    return Array.from(this.contacts.values()).sort(
-      (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)
+    return Array.from(this.contactsMap.values()).sort(
+      (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0),
     );
   }
 
@@ -151,17 +174,17 @@ export class MemStorage implements IStorage {
       imageUrl: contact.imageUrl ?? null,
       isPrimary: contact.isPrimary ?? false,
     };
-    this.contacts.set(id, c);
+    this.contactsMap.set(id, c);
     return c;
   }
 
   async getCommunityPost(id: string): Promise<CommunityPost | undefined> {
-    return this.communityPosts.get(id);
+    return this.communityPostsMap.get(id);
   }
 
   async getCommunityPosts(): Promise<CommunityPost[]> {
-    return Array.from(this.communityPosts.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return Array.from(this.communityPostsMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
@@ -175,9 +198,93 @@ export class MemStorage implements IStorage {
       likesCount: post.likesCount ?? 0,
       savesCount: post.savesCount ?? 0,
     };
-    this.communityPosts.set(id, p);
+    this.communityPostsMap.set(id, p);
     return p;
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  private db() {
+    const db = getDb();
+    if (!db) throw new Error("DATABASE_URL is not configured");
+    return db;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await this.db().select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await this.db()
+      .select()
+      .from(users)
+      .where(eq(users.email, username.toLowerCase().trim()));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await this.db().insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getMoodEntries(): Promise<MoodEntry[]> {
+    return this.db()
+      .select()
+      .from(moodEntries)
+      .orderBy(desc(moodEntries.createdAt));
+  }
+
+  async createMoodEntry(entry: InsertMoodEntry): Promise<MoodEntry> {
+    const [row] = await this.db().insert(moodEntries).values(entry).returning();
+    return row;
+  }
+
+  async getJournalEntries(): Promise<JournalEntry[]> {
+    return this.db()
+      .select()
+      .from(journalEntries)
+      .orderBy(desc(journalEntries.createdAt));
+  }
+
+  async createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry> {
+    const [row] = await this.db().insert(journalEntries).values(entry).returning();
+    return row;
+  }
+
+  async getContacts(): Promise<Contact[]> {
+    return this.db()
+      .select()
+      .from(contacts)
+      .orderBy(desc(contacts.isPrimary), desc(contacts.createdAt));
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [row] = await this.db().insert(contacts).values(contact).returning();
+    return row;
+  }
+
+  async getCommunityPost(id: string): Promise<CommunityPost | undefined> {
+    const [post] = await this.db()
+      .select()
+      .from(communityPosts)
+      .where(eq(communityPosts.id, id));
+    return post;
+  }
+
+  async getCommunityPosts(): Promise<CommunityPost[]> {
+    return this.db()
+      .select()
+      .from(communityPosts)
+      .orderBy(desc(communityPosts.createdAt));
+  }
+
+  async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
+    const [row] = await this.db().insert(communityPosts).values(post).returning();
+    return row;
+  }
+}
+
+export const storage: IStorage = hasDatabase()
+  ? new DatabaseStorage()
+  : new MemStorage();

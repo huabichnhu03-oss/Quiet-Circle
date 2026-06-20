@@ -22,8 +22,8 @@ MoodMind is a mobile-first mental wellness companion web app designed for LGBTQ+
 | Database | PostgreSQL (Drizzle ORM + drizzle-zod) — schema defined, **in-memory store used at runtime** |
 | Auth | **Resend magic-link email** (no password, no Google OAuth required) |
 | Email | Resend (`server/email.ts`) |
-| Deployment | Vercel serverless via `api/index.js` → `dist/index.cjs` |
-| Build | esbuild (server → `dist/index.cjs`), Vite (client → `dist/public/`) |
+| Deployment | Vercel serverless via `api/index.js` → `api/_server/index.cjs` |
+| Build | esbuild (server → `api/_server/index.cjs`), Vite (client → `api/_server/public/`) |
 
 ---
 
@@ -68,23 +68,28 @@ Work completed in the latest agent session. Use this section to pick up where we
 - `npm run build` — passes
 - Production server serves `text/html` on `/` and JSON on `/api/*`
 
-### ⚠️ Deploy status (needs confirmation)
+### ⚠️ Deploy status
 
-- Code is on GitHub and latest Vercel fix is pushed (`d3cb7c6` or later)
-- User should **Redeploy on Vercel** after each push
-- Vercel dashboard settings:
-  - **Framework Preset:** Other
-  - **Build Command:** `npm run build`
-  - **Output Directory:** *(leave empty)*
-- If site still downloads a file or shows 500, check Vercel deployment logs for runtime errors (e.g. missing `dist/**` in function bundle)
+- **Live and working:** https://quiet-circle.vercel.app (homepage + `/api/mood-entries` return 200)
+- Latest Vercel fix on GitHub: `3267007` — build outputs to `api/_server/`, bundled via `includeFiles`
+- Vercel env vars needed for auth emails: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL=https://quiet-circle.vercel.app`
+- Optional persistence: `DATABASE_URL` (Neon/Supabase) + run `npm run db:push`
+
+### 🔄 In progress (uncommitted)
+
+- **Auth refactor:** email/password sign-up + 6-digit verification code (replacing magic-link)
+  - `server/auth.ts`, `server/email.ts`, `server/routes.ts`, `Login.tsx`, `VerifyEmail.tsx`
+  - Users persist to PostgreSQL when `DATABASE_URL` is set
+- **DatabaseStorage** implemented in `server/storage.ts` — mood/journal/contacts/posts use Postgres when configured
 
 ### 🔴 Not done yet — priority for next agent
 
 #### HIGH — production blockers
-1. **Wire PostgreSQL storage** — Create `DatabaseStorage` in `server/storage.ts` implementing `IStorage` with Drizzle + pg. Replace `MemStorage` export. All mood/journal/contact/post data is lost on every Vercel cold start until this is done.
-2. **Persist auth users** — Magic-link users stored in in-memory `Map` in `server/auth.ts`. Move to `users` table in PostgreSQL.
-3. **Server-side sessions** — `express-session` + `connect-pg-simple` are dependencies but not wired. Auth state is only in `localStorage`.
-4. **Confirm Vercel deploy works end-to-end** — User reported download issue; fix pushed but not confirmed live. Test: open `*.vercel.app`, login page loads, magic link flow works with `RESEND_API_KEY` + `APP_URL` set.
+1. ~~**Wire PostgreSQL storage**~~ — `DatabaseStorage` done; run `npm run db:push` against Neon and set `DATABASE_URL` on Vercel
+2. ~~**Persist auth users**~~ — auth uses `users` table when `DATABASE_URL` is set (verification codes still in-memory until sessions wired)
+3. **Server-side sessions** — `express-session` + `connect-pg-simple` not wired yet; auth state only in `localStorage`
+4. ~~**Confirm Vercel deploy works end-to-end**~~ — https://quiet-circle.vercel.app confirmed live
+5. **Commit & deploy auth refactor** — password + verification code flow is local-only (uncommitted)
 
 #### MEDIUM — UX / features
 5. **Profile shows hardcoded name** “Chiara Advani” — should read from `localStorage` (`user_name`, `user_email`)

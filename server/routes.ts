@@ -7,8 +7,17 @@ import {
   insertContactSchema,
   insertCommunityPostSchema,
 } from "@shared/schema";
-import { createMagicLinkToken, consumeMagicLinkToken } from "./auth";
-import { getAppUrl, sendMagicLinkEmail } from "./email";
+import {
+  registerUser,
+  loginUser,
+  verifyEmailCode,
+  resendVerificationCode,
+} from "./auth";
+import {
+  getResendStatus,
+  sendTestEmail,
+  sendVerificationCodeEmail,
+} from "./email";
 
 export function registerRoutes(
   httpServer: Server,
@@ -76,42 +85,71 @@ export function registerRoutes(
     res.status(201).json(post);
   });
 
-  // Auth: send a magic sign-in link via Resend
-  app.post("/api/auth/magic-link", async (req, res) => {
-    const { email, name } = req.body;
+  app.get("/api/health/resend", (_req, res) => {
+    res.json(getResendStatus());
+  });
+
+  // Dev helper: POST { "to": "you@example.com" } — only when RESEND_API_KEY is set
+  app.post("/api/health/resend/test", async (req, res) => {
+    if (process.env.NODE_ENV === "production" && !process.env.ALLOW_RESEND_TEST) {
+      return res.status(404).json({ error: "Not found." });
+    }
+
+    const { to } = req.body;
+    if (!to || typeof to !== "string") {
+      return res.status(400).json({ error: '"to" email address is required.' });
+    }
+
+    const result = await sendTestEmail(to.trim());
+    if (!result.ok) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json({ ok: true, id: result.id, message: `Test email sent to ${to.trim()}.` });
+  });
+
+  // Auth: create account (password + email verification code)
+  app.post("/api/auth/register", async (req, res) => {
+    const { email, password, name } = req.body;
     if (!email || typeof email !== "string") {
       return res.status(400).json({ error: "Email is required." });
     }
-
-    const key = email.toLowerCase().trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)) {
-      return res.status(400).json({ error: "Please enter a valid email address." });
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ error: "Password is required." });
     }
 
-    const token = createMagicLinkToken(
-      key,
-      typeof name === "string" ? name : undefined,
+    const result = await registerUser(
+      email,
+      password,
+      typeof name === "string" ? name : "",
     );
-    const appUrl = getAppUrl(req);
-    const link = `${appUrl}/auth/verify?token=${token}`;
-
-    try {
-      await sendMagicLinkEmail(key, link, req);
-      res.json({ ok: true, message: "Check your email for a sign-in link." });
-    } catch (err) {
-      console.error("Failed to send magic link:", err);
-      res.status(500).json({ error: "Could not send email. Please try again." });
+    if (!result.ok) {
+      return res.status(400).json({ error: result.error });
     }
+
+    const sent = await sendVerificationCodeEmail(result.email, result.code);
+    if (!sent.ok) {
+      return res.status(500).json({ error: "Could not send verification email." });
+    }
+
+    res.json({
+      ok: true,
+      email: result.email,
+      message: "Check your email for a 6-digit verification code.",
+    });
   });
 
-  // Auth: verify magic link token (used by /auth/verify page)
-  app.get("/api/auth/verify", (req, res) => {
-    const token = req.query.token;
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ ok: false, error: "Missing sign-in token." });
+  // Auth: verify email with 6-digit code
+  app.post("/api/auth/verify-email", async (req, res) => {
+    const { email, code } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ error: "Verification code is required." });
     }
 
-    const result = consumeMagicLinkToken(token);
+    const result = await verifyEmailCode(email, code);
     if (!result.ok) {
       return res.status(400).json({ ok: false, error: result.error });
     }
@@ -121,6 +159,59 @@ export function registerRoutes(
       email: result.email,
       name: result.name,
       isNewUser: result.isNewUser,
+    });
+  });
+
+  // Auth: resend verification code
+  app.post("/api/auth/resend-code", async (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    const result = await resendVerificationCode(email);
+    if (!result.ok) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    const sent = await sendVerificationCodeEmail(result.email, result.code);
+    if (!sent.ok) {
+      return res.status(500).json({ error: "Could not send verification email." });
+    }
+
+    res.json({ ok: true, message: "A new code has been sent to your email." });
+  });
+
+  // Auth: sign in with email + password
+  app.post("/api/auth/login", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ error: "Password is required." });
+    }
+
+    const result = await loginUser(email, password);
+    if (!result.ok) {
+      if ("needsVerification" in result && result.needsVerification) {
+        const sent = await sendVerificationCodeEmail(result.email, result.code);
+        if (!sent.ok) {
+          return res.status(500).json({ error: "Could not send verification email." });
+        }
+        return res.status(403).json({
+          error: result.error,
+          needsVerification: true,
+          email: result.email,
+        });
+      }
+      return res.status(401).json({ error: result.error });
+    }
+
+    res.json({
+      ok: true,
+      email: result.email,
+      name: result.name,
     });
   });
 
