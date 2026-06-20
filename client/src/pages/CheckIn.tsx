@@ -215,7 +215,7 @@ export default function CheckIn() {
         </div>
       </div>
 
-      {/* Listening to you button */}
+      {/* Submit button */}
       <div
         className="px-4 sm:px-8 pb-12 flex flex-col items-center gap-4"
         style={{ paddingBottom: "calc(3rem + var(--app-safe-bottom))" }}
@@ -241,7 +241,7 @@ export default function CheckIn() {
         >
           <IconHeadphones size={28} color="var(--app-accent)" className="mb-1" />
           <span className="text-xs font-semibold text-[var(--app-muted)] text-center leading-tight">
-            {mutation.isPending ? "Saving…" : "Listening\nto you"}
+            {mutation.isPending ? "Saving…" : "Submit"}
           </span>
         </button>
 
