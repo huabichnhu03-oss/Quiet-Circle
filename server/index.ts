@@ -24,8 +24,22 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-if (process.env.CLERK_SECRET_KEY) {
-  app.use(clerkMiddleware());
+const clerkPublishableKey =
+  process.env.CLERK_PUBLISHABLE_KEY ??
+  process.env.VITE_CLERK_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+if (process.env.CLERK_SECRET_KEY && clerkPublishableKey) {
+  app.use(
+    clerkMiddleware({
+      publishableKey: clerkPublishableKey,
+      secretKey: process.env.CLERK_SECRET_KEY,
+    }),
+  );
+} else if (process.env.CLERK_SECRET_KEY) {
+  console.warn(
+    "[clerk] Publishable key not set — clerkMiddleware disabled. Add VITE_CLERK_PUBLISHABLE_KEY to .env.",
+  );
 } else {
   console.warn(
     "[clerk] CLERK_SECRET_KEY not set — API auth will reject all protected routes.",

@@ -3,12 +3,15 @@ import { useEffect } from "react";
 import { setAuthTokenGetter } from "@/lib/auth-fetch";
 
 export function AuthTokenBridge() {
-  const { getToken, isLoaded } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
     if (!isLoaded) return;
-    setAuthTokenGetter(() => getToken());
-  }, [getToken, isLoaded]);
+    setAuthTokenGetter(async () => {
+      if (!isSignedIn) return null;
+      return (await getToken()) ?? null;
+    });
+  }, [getToken, isLoaded, isSignedIn]);
 
   return null;
 }

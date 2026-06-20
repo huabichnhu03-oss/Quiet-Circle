@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { IconArrowLeft } from "@/components/Icons";
+import { PageHeader } from "@/components/PageHeader";
 
 const phases = [
-  { label: "Breathe In", duration: 4, scale: 1.4, color: "#8b5cf6" },
-  { label: "Hold", duration: 4, scale: 1.4, color: "#a78bfa" },
-  { label: "Breathe Out", duration: 6, scale: 1.0, color: "#6d28d9" },
-  { label: "Hold", duration: 2, scale: 1.0, color: "#7c3aed" },
+  { label: "Breathe In", duration: 4, scale: 1.4, color: "var(--app-accent)" },
+  { label: "Hold", duration: 4, scale: 1.4, color: "var(--app-primary)" },
+  { label: "Breathe Out", duration: 6, scale: 1.0, color: "var(--app-primary-dark)" },
+  { label: "Hold", duration: 2, scale: 1.0, color: "var(--app-accent)" },
 ];
-
-const totalCycle = phases.reduce((s, p) => s + p.duration, 0);
 
 export default function Breathe() {
   const [running, setRunning] = useState(false);
@@ -35,7 +34,9 @@ export default function Breathe() {
         return prev - 1;
       });
     }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [running, phaseIndex]);
 
   const handleToggle = () => {
@@ -58,32 +59,38 @@ export default function Breathe() {
   const progress = 1 - secondsLeft / phase.duration;
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(160deg, #ede9fe 0%, #fce7f3 60%, #dbeafe 100%)" }}>
-      <div className="px-6 pt-10 pb-6 flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-1">Calm your mind</p>
-          <h1 className="text-2xl font-bold text-gray-900">Breathe 🌬️</h1>
-          <p className="text-sm text-slate-600 mt-1">Box breathing for stress relief</p>
-        </div>
-        <button
-          data-testid="button-breathe-back"
-          onClick={() => setLocation("/")}
-          className="w-9 h-9 flex items-center justify-center rounded-2xl mt-1 flex-shrink-0"
-          style={{ background: "rgba(255,255,255,0.65)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 8px 32px rgba(0,0,0,0.07)" }}
-          aria-label="Back to home"
-        >
-          <IconArrowLeft size={18} color="#4b5563" />
-        </button>
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        eyebrow="Calm your mind"
+        title="Breathe"
+        subtitle="Box breathing for stress relief"
+        action={
+          <button
+            data-testid="button-breathe-back"
+            onClick={() => setLocation("/")}
+            className="w-9 h-9 flex items-center justify-center rounded-2xl app-card text-[var(--app-text)] flex-shrink-0"
+            aria-label="Back to home"
+          >
+            <IconArrowLeft size={18} />
+          </button>
+        }
+      />
 
-      {/* Breathing circle */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 gap-8">
         <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
-          {/* Outer ring */}
           <svg width={240} height={240} className="absolute inset-0" viewBox="0 0 240 240">
-            <circle cx={120} cy={120} r={110} fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth={8} />
             <circle
-              cx={120} cy={120} r={110}
+              cx={120}
+              cy={120}
+              r={110}
+              fill="none"
+              stroke="color-mix(in srgb, var(--app-accent) 12%, transparent)"
+              strokeWidth={8}
+            />
+            <circle
+              cx={120}
+              cy={120}
+              r={110}
               fill="none"
               stroke={phase.color}
               strokeWidth={6}
@@ -95,84 +102,88 @@ export default function Breathe() {
             />
           </svg>
 
-          {/* Pulsing circle */}
           <div
             data-testid="breathe-circle"
             className="rounded-full flex flex-col items-center justify-center text-white shadow-2xl"
             style={{
               width: 160,
               height: 160,
-              background: `radial-gradient(circle at 40% 35%, ${phase.color}cc, ${phase.color})`,
+              background: `radial-gradient(circle at 40% 35%, color-mix(in srgb, ${phase.color} 80%, white), ${phase.color})`,
               transform: `scale(${running ? phase.scale : 1})`,
               transition: `transform ${phase.duration}s ease-in-out, background 0.5s`,
-              boxShadow: `0 0 40px ${phase.color}55`,
+              boxShadow: `0 0 40px color-mix(in srgb, ${phase.color} 33%, transparent)`,
             }}
           >
             <span className="text-2xl font-bold">{secondsLeft}</span>
-            <span className="text-[11px] font-medium opacity-80 mt-0.5">{running ? phase.label : "Ready"}</span>
+            <span className="text-[11px] font-medium opacity-80 mt-0.5">
+              {running ? phase.label : "Ready"}
+            </span>
           </div>
         </div>
 
-        {/* Phase indicators */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-center">
           {phases.map((p, i) => (
             <div
               key={i}
               data-testid={`phase-indicator-${i}`}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-              style={{
-                background: phaseIndex === i && running ? phase.color : "rgba(255,255,255,0.6)",
-                color: phaseIndex === i && running ? "#fff" : "#6b7280",
-              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                phaseIndex === i && running ? "pill-active" : "pill-inactive"
+              }`}
             >
               {p.label}
             </div>
           ))}
         </div>
 
-        {/* Cycles counter */}
-        {cycles > 0 && (
-          <div data-testid="cycles-count" className="bg-white rounded-2xl px-6 py-3 text-center border border-slate-200">
-            <p className="text-2xl font-bold text-violet-700">{cycles}</p>
-            <p className="text-xs text-slate-600">cycle{cycles !== 1 ? "s" : ""} completed</p>
+        {cycles > 0 ? (
+          <div data-testid="cycles-count" className="app-card rounded-2xl px-6 py-3 text-center">
+            <p className="text-2xl font-bold text-[var(--app-primary)]">{cycles}</p>
+            <p className="text-xs text-[var(--app-muted)]">
+              cycle{cycles !== 1 ? "s" : ""} completed
+            </p>
           </div>
-        )}
+        ) : null}
 
-        {/* Start/Stop button */}
         <button
           data-testid="button-breathe-toggle"
           onClick={handleToggle}
-          className="w-full max-w-[280px] py-4 rounded-2xl text-sm font-bold transition-all active:scale-95 shadow-lg"
-          style={{
-            background: running ? "#ef4444" : "linear-gradient(135deg, #8b5cf6, #a855f7)",
-            color: "white",
-            boxShadow: running ? "0 8px 20px rgba(239,68,68,0.3)" : "0 8px 20px rgba(139,92,246,0.3)",
-          }}
+          className={`w-full max-w-[280px] py-4 rounded-2xl text-sm font-bold transition-all active:scale-95 shadow-lg text-white ${
+            running ? "" : "btn-gradient"
+          }`}
+          style={
+            running
+              ? { background: "#ef4444", boxShadow: "0 8px 20px rgba(239,68,68,0.3)" }
+              : { boxShadow: "0 8px 20px color-mix(in srgb, var(--app-accent) 30%, transparent)" }
+          }
         >
           {running ? "Stop Session" : "Start Breathing"}
         </button>
 
-        {/* Stop & Exit */}
         <button
           data-testid="button-breathe-stop-exit"
           onClick={handleStopAndExit}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-xl"
-          style={{ background: "rgba(255,255,255,0.9)" }}
+          className="flex items-center gap-2 text-sm font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors px-4 py-2 rounded-xl app-card"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            <path
+              d="M18 6L6 18M6 6L18 18"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
           </svg>
           {running ? "Stop & Exit" : "← Back to Home"}
         </button>
 
-        {/* Instructions */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 w-full max-w-[320px]">
-          <h3 className="text-xs font-bold text-gray-700 mb-3">4-4-6-2 Box Breathing</h3>
+        <div className="app-card rounded-2xl p-4 w-full max-w-[320px]">
+          <h3 className="text-xs font-bold text-[var(--app-text)] mb-3">4-4-6-2 Box Breathing</h3>
           <div className="space-y-2">
             {phases.map((p, i) => (
               <div key={i} className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">{p.label}</span>
-                <span className="text-xs font-semibold text-violet-600">{p.duration}s</span>
+                <span className="text-xs text-[var(--app-muted)]">{p.label}</span>
+                <span className="text-xs font-semibold text-[var(--app-accent)]">
+                  {p.duration}s
+                </span>
               </div>
             ))}
           </div>

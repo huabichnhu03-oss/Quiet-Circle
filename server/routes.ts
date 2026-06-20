@@ -41,24 +41,6 @@ export function registerRoutes(
     res.json(getClerkStatus());
   });
 
-  app.get("/api/auth/me", requireApiAuth, async (req, res) => {
-    const { userId } = getAuth(req);
-    const clerkUser = await clerkClient.users.getUser(userId!);
-    const email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
-    const name =
-      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
-      email?.split("@")[0] ||
-      null;
-
-    res.json({
-      userId,
-      email,
-      name,
-      imageUrl: clerkUser.imageUrl,
-      username: await getCommunityUsername(userId!),
-    });
-  });
-
   app.get("/api/mood-entries", requireApiAuth, async (req, res) => {
     const { userId } = getAuth(req);
     const entries = await storage.getMoodEntries(userId!);

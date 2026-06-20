@@ -14,7 +14,7 @@ PORT = "5000"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["node", "./dist/index.cjs"]
+run = ["node", "./api/_server/index.cjs"]
 build = ["npm", "run", "build"]
 
 [workflows]
@@ -48,4 +48,3 @@ timeoutMs = 20000
 [userenv]
 
 [userenv.shared]
-VITE_GOOGLE_CLIENT_ID = "694606269434-4g3k7cnjn2jbu9rrb0cq027puqrfjap2.apps.googleusercontent.com"
