@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import type { Response } from "express";
 import { createServer, type Server } from "http";
 import { clerkClient, getAuth } from "@clerk/express";
 import { storage } from "./storage";
@@ -18,6 +19,7 @@ import { getClerkStatus, requireApiAuth } from "./clerk-auth";
 import { formatDbError } from "./db-errors";
 import { ensureDemoContacts, ensureDemoCommunityPosts, shouldSeedDemoContacts, shouldSeedDemoCommunityPosts } from "./demo-data";
 import { isReactionOnlyPatch, requireOwner } from "./ownership";
+import { z } from "zod";
 
 function routeParam(value: string | string[]): string {
   return Array.isArray(value) ? value[0] : value;
@@ -31,6 +33,66 @@ async function getCommunityUsername(userId: string): Promise<string> {
   const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join("");
   if (name) return name.toLowerCase().replace(/\s+/g, "_");
   return "member";
+}
+
+type SignalRole = "sender" | "companion";
+type LiveSignalLocation = {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  updatedAt: string;
+};
+type LiveSignalSession = {
+  ownerUserId: string;
+  contactId: string;
+  locations: Map<SignalRole, LiveSignalLocation>;
+  listeners: Set<Response>;
+};
+
+const liveSignalSessions = new Map<string, LiveSignalSession>();
+const liveLocationSchema = z.object({
+  role: z.enum(["sender", "companion"]),
+  lat: z.number().finite(),
+  lng: z.number().finite(),
+  accuracy: z.number().finite().nullable().optional(),
+});
+
+function signalSessionKey(ownerUserId: string, contactId: string): string {
+  return `${ownerUserId}:${contactId}`;
+}
+
+function ensureLiveSignalSession(ownerUserId: string, contactId: string): LiveSignalSession {
+  const key = signalSessionKey(ownerUserId, contactId);
+  const existing = liveSignalSessions.get(key);
+  if (existing) return existing;
+  const created: LiveSignalSession = {
+    ownerUserId,
+    contactId,
+    locations: new Map(),
+    listeners: new Set(),
+  };
+  liveSignalSessions.set(key, created);
+  return created;
+}
+
+function sessionPayload(session: LiveSignalSession) {
+  return {
+    contactId: session.contactId,
+    sender: session.locations.get("sender") ?? null,
+    companion: session.locations.get("companion") ?? null,
+  };
+}
+
+function writeSse(res: Response, event: string, data: unknown) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function broadcastSessionUpdate(session: LiveSignalSession) {
+  const payload = sessionPayload(session);
+  for (const listener of session.listeners) {
+    writeSse(listener, "update", payload);
+  }
 }
 
 export function registerRoutes(
@@ -254,6 +316,79 @@ export function registerRoutes(
     const id = routeParam(req.params.id);
     const deleted = await storage.deleteCommunityPost(id, userId!);
     if (!deleted) return res.status(404).json({ error: "Post not found" });
+    res.status(204).send();
+  });
+
+  app.get("/api/live-signal/:contactId", requireApiAuth, async (req, res) => {
+    const { userId } = getAuth(req);
+    const contactId = routeParam(req.params.contactId);
+    const session = liveSignalSessions.get(signalSessionKey(userId!, contactId));
+    if (!session) {
+      return res.json({
+        contactId,
+        sender: null,
+        companion: null,
+      });
+    }
+    res.json(sessionPayload(session));
+  });
+
+  app.post("/api/live-signal/:contactId/location", requireApiAuth, async (req, res) => {
+    const { userId } = getAuth(req);
+    const contactId = routeParam(req.params.contactId);
+    const parsed = liveLocationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const session = ensureLiveSignalSession(userId!, contactId);
+    session.locations.set(parsed.data.role, {
+      lat: parsed.data.lat,
+      lng: parsed.data.lng,
+      accuracy: parsed.data.accuracy ?? null,
+      updatedAt: new Date().toISOString(),
+    });
+    broadcastSessionUpdate(session);
+    res.status(204).send();
+  });
+
+  app.get("/api/live-signal/:contactId/stream", requireApiAuth, async (req, res) => {
+    const { userId } = getAuth(req);
+    const contactId = routeParam(req.params.contactId);
+    const session = ensureLiveSignalSession(userId!, contactId);
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    session.listeners.add(res);
+    writeSse(res, "update", sessionPayload(session));
+
+    const heartbeat = setInterval(() => {
+      res.write(": keep-alive\n\n");
+    }, 15000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      session.listeners.delete(res);
+      if (session.listeners.size === 0 && session.locations.size === 0) {
+        liveSignalSessions.delete(signalSessionKey(userId!, contactId));
+      }
+    });
+  });
+
+  app.delete("/api/live-signal/:contactId", requireApiAuth, async (req, res) => {
+    const { userId } = getAuth(req);
+    const contactId = routeParam(req.params.contactId);
+    const key = signalSessionKey(userId!, contactId);
+    const session = liveSignalSessions.get(key);
+    if (session) {
+      for (const listener of session.listeners) {
+        writeSse(listener, "ended", { contactId });
+      }
+      liveSignalSessions.delete(key);
+    }
     res.status(204).send();
   });
 

@@ -81,7 +81,7 @@ export default function Community() {
       />
 
       <div className="px-4 sm:px-5 mb-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-2 overflow-x-auto pb-1 app-scrollbar-x">
           {COMMUNITIES.map((c) => (
             <button
               key={c}

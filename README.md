@@ -16,6 +16,7 @@ npm run dev            # http://localhost:5000
 
 ## Docs
 
+- **`CAUTION.md`** — read before every GitHub push (local test keys vs live Vercel keys)
 - **`checklist.md`** — agent + owner launch checklists (per-user data, deploy)
 - **`progress.md`** — single source of truth (stack, deploy, backlog)
 - `AGENT_HANDOFF.md` / `NEXT_STEPS.md` — short pointers for agents

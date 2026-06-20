@@ -18,8 +18,11 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
   return (
     <PhoneShell scrollable>
       <div
-        className="flex-1 w-full overflow-x-hidden flex items-start sm:items-center justify-center px-4 py-6 sm:px-6 sm:py-10 box-border app-surface"
-        style={{ paddingTop: "calc(1.5rem + var(--app-safe-top))" }}
+        className="w-full min-h-min flex flex-col items-center justify-start px-3 py-4 sm:px-5 sm:py-6 box-border app-surface"
+        style={{
+          paddingTop: "calc(0.75rem + var(--app-safe-top))",
+          paddingBottom: "calc(1rem + var(--app-safe-bottom))",
+        }}
       >
         <div
           className="pointer-events-none fixed top-[-80px] left-[-60px] w-64 h-64 rounded-full opacity-40 animate-float"
@@ -36,31 +39,29 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
           }}
         />
 
-        <div className="w-full max-w-[min(100%,24rem)] min-w-0 mx-auto animate-fade-up box-border">
-          <div className="text-center mb-5 sm:mb-8">
-            <div
-              className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-lg btn-gradient"
-            >
-              <Heart size={28} color="white" strokeWidth={1.75} />
+        <div className="w-full max-w-[min(100%,22rem)] min-w-0 mx-auto animate-fade-up box-border">
+          <div className="text-center mb-3 sm:mb-4">
+            <div className="w-12 h-12 rounded-2xl mx-auto mb-2 flex items-center justify-center shadow-md btn-gradient">
+              <Heart size={22} color="white" strokeWidth={1.75} />
             </div>
             <h1
-              className="text-3xl font-bold text-[var(--app-text)] app-brand"
+              className="text-2xl font-bold text-[var(--app-text)] app-brand"
               data-testid="text-login-title"
             >
               {brandName}
             </h1>
-            <p className="text-sm text-[var(--app-muted)] mt-1">
+            <p className="text-xs text-[var(--app-muted)] mt-0.5">
               Your mental wellness journey
             </p>
           </div>
 
-          <div className="w-full min-w-0 rounded-3xl shadow-xl p-4 sm:p-6 box-border glass-card">
-            <div className="flex rounded-2xl p-1 mb-4 sm:mb-5 app-card-muted">
+          <div className="w-full min-w-0 rounded-2xl shadow-xl px-5 py-4 sm:px-6 sm:py-5 box-border glass-card overflow-visible">
+            <div className="flex rounded-xl p-0.5 mb-2.5 app-card-muted">
               <button
                 type="button"
                 data-testid="tab-signin"
                 onClick={() => navigate("/login")}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                   mode === "signin"
                     ? "app-card text-[var(--app-primary)] shadow-sm"
                     : "text-[var(--app-muted)]"
@@ -72,7 +73,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                 type="button"
                 data-testid="tab-signup"
                 onClick={() => navigate("/sign-up")}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                   mode === "signup"
                     ? "app-card text-[var(--app-primary)] shadow-sm"
                     : "text-[var(--app-muted)]"
@@ -82,10 +83,10 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
               </button>
             </div>
 
-            <h2 className="text-base sm:text-lg font-bold text-[var(--app-text)] mb-1">
+            <h2 className="text-sm sm:text-base font-bold text-[var(--app-text)] mb-0.5">
               {mode === "signin" ? "Welcome back" : "Create your account"}
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--app-muted)] mb-4">
+            <p className="text-xs text-[var(--app-muted)] mb-2.5">
               {mode === "signin"
                 ? "Sign in to continue your wellness journey."
                 : "Join a supportive space for your mental health."}
@@ -93,26 +94,30 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
             {clerkUnavailable ? (
               <p
-                className="text-sm text-[var(--app-muted)] text-center py-8 leading-relaxed"
+                className="text-xs text-[var(--app-muted)] text-center py-4 leading-relaxed"
                 data-testid="text-auth-error"
               >
                 {clerkError}
               </p>
             ) : mode === "signin" ? (
-              <div className="auth-clerk-embed">
+              <div className="auth-clerk-embed auth-clerk-embed--compact">
                 <SignIn
                   routing="path"
                   path="/login"
                   signUpUrl="/sign-up"
+                  fallbackRedirectUrl="/"
+                  signUpFallbackRedirectUrl="/sign-up"
                   appearance={getEmbeddedClerkAppearance(theme)}
                 />
               </div>
             ) : (
-              <div className="auth-clerk-embed">
+              <div className="auth-clerk-embed auth-clerk-embed--compact">
                 <SignUp
                   routing="path"
                   path="/sign-up"
                   signInUrl="/login"
+                  fallbackRedirectUrl="/onboarding"
+                  signInFallbackRedirectUrl="/login"
                   appearance={getEmbeddedClerkAppearance(theme)}
                 />
               </div>

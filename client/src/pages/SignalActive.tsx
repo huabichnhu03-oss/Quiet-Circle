@@ -5,9 +5,10 @@ import { type Contact } from "@shared/schema";
 import {
   clearActiveSignal,
   contactInitials,
-  getContactRouteInfo,
 } from "@/lib/signal-map";
 import { SignalMapView } from "@/components/SignalMapView";
+import { useLiveSignalRoute } from "@/hooks/use-live-signal-route";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,19 +47,32 @@ export default function SignalActive() {
     );
   }
 
-  const routeInfo = getContactRouteInfo(contact);
+  const routeInfo = useLiveSignalRoute(contact, "sender");
   const fullName = `${contact.firstName} ${contact.lastName}`;
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     setShowSentModal(false);
     setShow911(false);
+    try {
+      await apiRequest("DELETE", `/api/live-signal/${contact.id}`);
+    } catch {
+      // Keep UI responsive even if cleanup fails server-side.
+    }
     clearActiveSignal();
     setLocation("/emergency");
   };
 
+  if (!routeInfo) {
+    return (
+      <div className="flex items-center justify-center min-h-full text-sm text-[var(--app-muted)]">
+        Loading live map…
+      </div>
+    );
+  }
+
   return (
     <>
-      <div data-testid="signal-active-map" className="min-h-full">
+      <div data-testid="signal-active-map" className="h-full min-h-0">
         <SignalMapView
           routeInfo={routeInfo}
           userLabel="You"

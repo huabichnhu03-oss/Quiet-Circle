@@ -6,9 +6,7 @@ type PhoneShellProps = {
 export function PhoneShell({ children, scrollable = false }: PhoneShellProps) {
   return (
     <div className="phone-shell">
-      <div
-        className={`phone-frame ${scrollable ? "overflow-y-auto overflow-x-hidden" : ""}`}
-      >
+      <div className={`phone-frame${scrollable ? " phone-frame--scrollable" : ""}`}>
         {children}
       </div>
     </div>

@@ -38,8 +38,14 @@ import Onboarding from "@/pages/Onboarding";
 import Notifications from "@/pages/Notifications";
 
 
-function StandaloneWrapper({ children }: { children: React.ReactNode }) {
-  return <PhoneShell scrollable>{children}</PhoneShell>;
+function StandaloneWrapper({
+  children,
+  scrollable = true,
+}: {
+  children: React.ReactNode;
+  scrollable?: boolean;
+}) {
+  return <PhoneShell scrollable={scrollable}>{children}</PhoneShell>;
 }
 
 function isPublicAuthRoute(location: string) {
@@ -54,13 +60,13 @@ function isPublicAuthRoute(location: string) {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
-  const { authReady, isSignedIn, userId } = useClerkReady();
+  const { authReady, isLoaded, isSignedIn, userId } = useClerkReady();
   const { user } = useUser();
   const onPublicRoute = isPublicAuthRoute(location);
   const isAdmin = user?.publicMetadata?.role === "admin";
   const hasAccess = isAdmin || isOnboarded(userId);
 
-  const isGuest = !authReady || !isSignedIn;
+  const isGuest = !isLoaded || !isSignedIn;
 
   useEffect(() => {
     if (isAdmin && userId) {
@@ -86,7 +92,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [authReady, isSignedIn, isGuest, userId, location, navigate, onPublicRoute, hasAccess]);
 
-  // No public landing page — send guests straight to login (don't wait for Clerk).
+  if (!isLoaded && !onPublicRoute) {
+    return null;
+  }
+
   if (isGuest && !onPublicRoute) {
     return <Redirect to="/login" />;
   }
@@ -142,12 +151,12 @@ function Router() {
           </StandaloneWrapper>
         )} />
         <Route path="/emergency/active/:contactId" component={() => (
-          <StandaloneWrapper>
+          <StandaloneWrapper scrollable={false}>
             <SignalActive />
           </StandaloneWrapper>
         )} />
         <Route path="/companion/alert/:contactId" component={() => (
-          <StandaloneWrapper>
+          <StandaloneWrapper scrollable={false}>
             <CompanionAlert />
           </StandaloneWrapper>
         )} />

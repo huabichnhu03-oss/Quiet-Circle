@@ -229,6 +229,39 @@ html:not([data-theme]) {
   color: var(--app-insight-text);
 }
 
+.app-scrollbar-x {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--app-primary) 78%, white 22%)
+    rgba(255, 255, 255, 0.55);
+}
+
+.app-scrollbar-x::-webkit-scrollbar {
+  height: 8px;
+}
+
+.app-scrollbar-x::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 9999px;
+}
+
+.app-scrollbar-x::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    135deg,
+    var(--app-primary),
+    color-mix(in srgb, var(--app-accent) 82%, white 18%)
+  );
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.app-scrollbar-x::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    135deg,
+    var(--app-primary-dark),
+    var(--app-accent)
+  );
+}
+
 .phone-shell {
   min-height: 100dvh;
   overflow: hidden;
@@ -251,6 +284,30 @@ html:not([data-theme]) {
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   background: var(--app-surface);
+}
+
+.phone-frame--scrollable {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.signal-map-layout,
+.signal-map-canvas,
+.signal-map-container,
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+.signal-map-canvas {
+  min-height: 280px;
+}
+
+.leaflet-container {
+  background: #e8ecef;
+  z-index: 0;
 }
 
 .animate-fade-in {
@@ -300,11 +357,15 @@ html:not([data-theme]) {
 .auth-clerk-embed .cl-main,
 .auth-clerk-embed .cl-form,
 .auth-clerk-embed .cl-socialButtons,
-.auth-clerk-embed .cl-footer {
+.auth-clerk-embed .cl-footer,
+.auth-clerk-embed .cl-otpCodeFieldInputs {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 .auth-clerk-embed input,
@@ -313,6 +374,84 @@ html:not([data-theme]) {
 .auth-clerk-embed .cl-socialButtonsBlockButton {
   max-width: 100% !important;
   box-sizing: border-box !important;
+}
+
+.auth-clerk-embed--compact {
+  font-size: 0.875rem;
+}
+
+.auth-clerk-embed--compact .cl-formFieldInput,
+.auth-clerk-embed--compact .cl-formFieldInput input,
+.auth-clerk-embed--compact input[type="text"],
+.auth-clerk-embed--compact input[type="password"],
+.auth-clerk-embed--compact input[type="email"] {
+  font-size: 0.875rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  padding-left: 0.875rem !important;
+  padding-right: 0.875rem !important;
+  min-height: 2.25rem !important;
+  height: auto !important;
+}
+
+.auth-clerk-embed--compact .cl-formButtonPrimary,
+.auth-clerk-embed--compact .cl-socialButtonsBlockButton {
+  font-size: 0.8125rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  min-height: 2.25rem !important;
+}
+
+.auth-clerk-embed--compact .cl-formFieldLabel {
+  font-size: 0.75rem !important;
+  margin-bottom: 0.125rem !important;
+}
+
+.auth-clerk-embed--compact .cl-formFieldRow {
+  margin-bottom: 0.375rem !important;
+}
+
+.auth-clerk-embed--compact .cl-dividerRow {
+  margin-top: 0.375rem !important;
+  margin-bottom: 0.375rem !important;
+}
+
+.auth-clerk-embed .cl-otpCodeFieldInputs,
+.auth-clerk-embed [class*="otpCodeFieldInputs"] {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  width: 100% !important;
+  overflow: visible !important;
+  flex-wrap: wrap !important;
+  padding: 0.25rem 0 !important;
+}
+
+.auth-clerk-embed .cl-otpCodeFieldInput,
+.auth-clerk-embed input[class*="otpCodeFieldInput"] {
+  width: 2.25rem !important;
+  min-width: 1.75rem !important;
+  max-width: 2.5rem !important;
+  height: 2.5rem !important;
+  font-size: 1rem !important;
+  text-align: center !important;
+  flex: 0 0 auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.auth-clerk-embed .cl-footerPages,
+.auth-clerk-embed [class*="footerPages"] {
+  display: none !important;
+}
+
+.auth-clerk-embed a[href*="clerk.com"][aria-label*="Clerk"],
+.auth-clerk-embed a[aria-label="Clerk logo"] {
+  display: none !important;
 }
 
 @layer base {

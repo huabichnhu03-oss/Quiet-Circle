@@ -29,6 +29,7 @@ async function main() {
 
   const user = await clerkClient.users.createUser({
     emailAddress: [ADMIN_EMAIL],
+    username: ADMIN_EMAIL.split("@")[0],
     password: ADMIN_PASSWORD,
     firstName: "Admin",
     lastName: "Preview",

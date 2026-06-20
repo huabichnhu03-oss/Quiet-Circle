@@ -6,10 +6,11 @@ import {
   clearActiveSignal,
   contactInitials,
   getActiveSignal,
-  getContactRouteInfo,
 } from "@/lib/signal-map";
 import { SignalMapView } from "@/components/SignalMapView";
 import { IconArrowLeft } from "@/components/Icons";
+import { useLiveSignalRoute } from "@/hooks/use-live-signal-route";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function CompanionAlert() {
   const [, setLocation] = useLocation();
@@ -37,18 +38,31 @@ export default function CompanionAlert() {
     );
   }
 
-  const routeInfo = getContactRouteInfo(contact);
+  const routeInfo = useLiveSignalRoute(contact, "companion");
   const personInNeed = activeSignal?.contactName
     ? "Someone in your circle"
     : "Circle member";
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    try {
+      await apiRequest("DELETE", `/api/live-signal/${contact.id}`);
+    } catch {
+      // Keep UI responsive even if cleanup fails server-side.
+    }
     clearActiveSignal();
     setLocation("/emergency");
   };
 
+  if (!routeInfo) {
+    return (
+      <div className="flex items-center justify-center min-h-full text-sm text-[var(--app-muted)]">
+        Loading live map…
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="absolute top-0 left-0 right-0 z-20 px-4 pt-4 flex items-center gap-3 pointer-events-none">
         <button
           type="button"
@@ -66,7 +80,7 @@ export default function CompanionAlert() {
         <div className="w-9" />
       </div>
 
-      <div data-testid="companion-alert-map" className="flex-1">
+      <div data-testid="companion-alert-map" className="h-full min-h-0 flex-1">
         <SignalMapView
           routeInfo={routeInfo}
           userLabel="Help"

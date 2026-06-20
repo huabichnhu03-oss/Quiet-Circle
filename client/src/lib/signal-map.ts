@@ -1,28 +1,26 @@
 import { type Contact } from "@shared/schema";
 
-export const MAP_W = 800;
-export const MAP_H = 800;
-
-export type MapPin = { x: number; y: number };
+export type GeoPoint = { lat: number; lng: number };
 
 export type SignalRouteInfo = {
   distance: string;
   eta: string;
   location: string;
-  userPin: MapPin;
-  contactPin: MapPin;
-  route: string;
-  midLabel: MapPin;
+  userLocation: GeoPoint;
+  contactLocation: GeoPoint;
 };
 
+const WALKING_SPEED_KMH = 4.8;
+const EARTH_RADIUS_KM = 6371;
+
 const MOCK_LOCATIONS = [
-  { location: "Barrie, Ontario", distance: "3.2 km", eta: "16 mins", pin: { x: 580, y: 140 } },
-  { location: "North York, Toronto", distance: "1.8 km", eta: "9 mins", pin: { x: 480, y: 220 } },
-  { location: "Downtown Toronto", distance: "2.4 km", eta: "12 mins", pin: { x: 520, y: 180 } },
-  { location: "Scarborough, Toronto", distance: "4.1 km", eta: "20 mins", pin: { x: 620, y: 260 } },
+  { location: "Barrie, Ontario", lat: 44.3894, lng: -79.6903 },
+  { location: "North York, Toronto", lat: 43.7615, lng: -79.4111 },
+  { location: "Downtown Toronto", lat: 43.6532, lng: -79.3832 },
+  { location: "Scarborough, Toronto", lat: 43.7764, lng: -79.2318 },
 ];
 
-const USER_PIN: MapPin = { x: 160, y: 580 };
+const DEFAULT_USER: GeoPoint = { lat: 43.6426, lng: -79.3871 };
 
 function hashIndex(id: string, max: number): number {
   let hash = 0;
@@ -32,23 +30,43 @@ function hashIndex(id: string, max: number): number {
   return hash;
 }
 
+function toRad(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+function haversineKm(a: GeoPoint, b: GeoPoint): number {
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
+}
+
+function formatDistance(distanceKm: number): string {
+  return distanceKm < 1
+    ? `${Math.round(distanceKm * 1000)} m`
+    : `${distanceKm.toFixed(1)} km`;
+}
+
+function etaFromDistanceKm(distanceKm: number): string {
+  const mins = Math.max(1, Math.round((distanceKm / WALKING_SPEED_KMH) * 60));
+  return `${mins} mins`;
+}
+
 export function getContactRouteInfo(contact: Contact): SignalRouteInfo {
   const mock = MOCK_LOCATIONS[hashIndex(contact.id, MOCK_LOCATIONS.length)];
-  const contactPin = mock.pin;
-  const route = `${USER_PIN.x},${USER_PIN.y} ${USER_PIN.x},${contactPin.y + 200} ${contactPin.x - 120},${contactPin.y + 200} ${contactPin.x - 120},${contactPin.y} ${contactPin.x},${contactPin.y}`;
-  const midLabel = {
-    x: (USER_PIN.x + contactPin.x) / 2 - 10,
-    y: (USER_PIN.y + contactPin.y + 200) / 2,
-  };
+  const contactLocation = { lat: mock.lat, lng: mock.lng };
+  const distanceKm = haversineKm(DEFAULT_USER, contactLocation);
 
   return {
-    distance: mock.distance,
-    eta: mock.eta,
+    distance: formatDistance(distanceKm),
+    eta: etaFromDistanceKm(distanceKm),
     location: mock.location,
-    userPin: USER_PIN,
-    contactPin,
-    route,
-    midLabel,
+    userLocation: DEFAULT_USER,
+    contactLocation,
   };
 }
 
@@ -86,24 +104,3 @@ export function getActiveSignal(): ActiveSignal | null {
 export function clearActiveSignal(): void {
   sessionStorage.removeItem(ACTIVE_SIGNAL_KEY);
 }
-
-export const MAP_STREETS = {
-  vRoads: [80, 200, 320, 440, 560, 680],
-  hRoads: [80, 200, 320, 440, 560, 680],
-  roadLabels: [
-    { x: 220, y: 197, text: "Adelaide St W" },
-    { x: 220, y: 317, text: "King St W" },
-    { x: 220, y: 437, text: "Queen St W" },
-    { x: 203, y: 260, rotate: true, text: "Spadina Ave" },
-    { x: 323, y: 260, rotate: true, text: "University Ave" },
-    { x: 443, y: 260, rotate: true, text: "Bay St" },
-    { x: 563, y: 260, rotate: true, text: "Yonge St" },
-  ],
-  blocks: [
-    [85, 85, 110, 110], [205, 85, 110, 110], [325, 85, 110, 110], [445, 85, 110, 110], [565, 85, 110, 110],
-    [85, 205, 110, 110], [205, 205, 110, 110], [325, 205, 110, 110], [445, 205, 110, 110], [565, 205, 110, 110],
-    [85, 325, 110, 110], [205, 325, 110, 110], [325, 325, 110, 110], [445, 325, 110, 110], [565, 325, 110, 110],
-    [85, 445, 110, 110], [205, 445, 110, 110], [325, 445, 110, 110], [445, 445, 110, 110], [565, 445, 110, 110],
-    [85, 565, 110, 110], [205, 565, 110, 110], [325, 565, 110, 110], [445, 565, 110, 110], [565, 565, 110, 110],
-  ] as [number, number, number, number][],
-};

@@ -1,10 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect } from "react";
+import L from "leaflet";
 import {
-  MAP_H,
-  MAP_STREETS,
-  MAP_W,
-  type SignalRouteInfo,
-} from "@/lib/signal-map";
+  MapContainer,
+  Marker,
+  Polyline,
+  TileLayer,
+  useMap,
+} from "react-leaflet";
+import { type SignalRouteInfo } from "@/lib/signal-map";
+import "leaflet/dist/leaflet.css";
 
 type SignalMapViewProps = {
   routeInfo: SignalRouteInfo;
@@ -15,6 +19,87 @@ type SignalMapViewProps = {
   bottomSheet: React.ReactNode;
 };
 
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    const resize = () => map.invalidateSize();
+    resize();
+    const timer = window.setTimeout(resize, 100);
+    window.addEventListener("resize", resize);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", resize);
+    };
+  }, [map]);
+
+  return null;
+}
+
+function FitMapBounds({
+  userLocation,
+  contactLocation,
+}: {
+  userLocation: SignalRouteInfo["userLocation"];
+  contactLocation: SignalRouteInfo["contactLocation"];
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const bounds = L.latLngBounds([
+      [userLocation.lat, userLocation.lng],
+      [contactLocation.lat, contactLocation.lng],
+    ]);
+    map.fitBounds(bounds, { padding: [56, 56], maxZoom: 16 });
+    map.invalidateSize();
+  }, [contactLocation.lat, contactLocation.lng, map, userLocation.lat, userLocation.lng]);
+
+  return null;
+}
+
+function createPinIcon(text: string, color: string, label: string) {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);">
+        <div style="
+          width:32px;height:32px;border-radius:50%;
+          background:${color};border:3px solid white;
+          box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          display:flex;align-items:center;justify-content:center;
+          color:white;font-size:10px;font-weight:700;font-family:Inter,sans-serif;
+        ">${text}</div>
+        <div style="
+          margin-top:4px;background:white;border-radius:999px;
+          padding:2px 8px;font-size:10px;font-weight:600;
+          color:#2d5016;font-family:Inter,sans-serif;
+          box-shadow:0 1px 4px rgba(0,0,0,0.12);white-space:nowrap;
+        ">${label}</div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+function createDistanceIcon(distance: string) {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        transform:translate(-50%,-50%);
+        background:var(--app-accent,#8b6914);
+        color:white;border-radius:999px;
+        padding:4px 12px;font-size:11px;font-weight:700;
+        font-family:Inter,sans-serif;
+        box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap;
+      ">${distance}</div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
 export function SignalMapView({
   routeInfo,
   userLabel,
@@ -23,174 +108,61 @@ export function SignalMapView({
   contactPinText,
   bottomSheet,
 }: SignalMapViewProps) {
-  const [offset, setOffset] = useState({ x: -180, y: -180 });
-  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
+  const { userLocation, contactLocation, distance } = routeInfo;
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      ox: offset.x,
-      oy: offset.y,
-    };
-  };
+  if (
+    userLocation?.lat == null ||
+    userLocation?.lng == null ||
+    contactLocation?.lat == null ||
+    contactLocation?.lng == null
+  ) {
+    return (
+      <div className="flex items-center justify-center min-h-full text-sm text-[var(--app-muted)]">
+        Loading map…
+      </div>
+    );
+  }
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    setOffset({
-      x: dragRef.current.ox + (e.clientX - dragRef.current.startX),
-      y: dragRef.current.oy + (e.clientY - dragRef.current.startY),
-    });
-  };
+  const centerLat = (userLocation.lat + contactLocation.lat) / 2;
+  const centerLng = (userLocation.lng + contactLocation.lng) / 2;
+  const routeLine: [number, number][] = [
+    [userLocation.lat, userLocation.lng],
+    [contactLocation.lat, contactLocation.lng],
+  ];
 
-  const onPointerUp = () => {
-    dragRef.current = null;
-  };
-
-  const { userPin, contactPin, route, midLabel, distance } = routeInfo;
+  const userIcon = createPinIcon(userPinText, "var(--app-primary,#2d5016)", userLabel);
+  const contactIcon = createPinIcon(contactPinText, "var(--app-accent,#8b6914)", contactLabel);
+  const distanceIcon = createDistanceIcon(distance);
 
   return (
-    <div className="flex flex-col min-h-full bg-[#e8f0d8]">
-      <div
-        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing min-h-0"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
-        style={{ touchAction: "none" }}
-      >
-        <svg
-          width={MAP_W}
-          height={MAP_H}
-          viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-          className="absolute select-none"
-          style={{ left: offset.x, top: offset.y }}
+    <div className="signal-map-layout flex flex-col h-full min-h-0 bg-[#e8ecef]">
+      <div className="signal-map-canvas relative flex-1 min-h-[280px] z-0">
+        <MapContainer
+          center={[centerLat, centerLng]}
+          zoom={14}
+          className="signal-map-container h-full w-full"
+          zoomControl={false}
+          attributionControl={false}
         >
-          <rect width={MAP_W} height={MAP_H} fill="#dce8c8" />
-
-          {MAP_STREETS.blocks.map(([x, y, w, h], i) => (
-            <rect key={i} x={x} y={y} width={w} height={h} rx="4" fill="#c8d9aa" opacity="0.55" />
-          ))}
-
-          {MAP_STREETS.vRoads.map((x) => (
-            <line key={`v${x}`} x1={x} y1="0" x2={x} y2={MAP_H} stroke="#f0ece0" strokeWidth="8" />
-          ))}
-          {MAP_STREETS.hRoads.map((y) => (
-            <line key={`h${y}`} x1="0" y1={y} x2={MAP_W} y2={y} stroke="#f0ece0" strokeWidth="8" />
-          ))}
-
-          {MAP_STREETS.roadLabels.map((r) => (
-            <text
-              key={r.text}
-              x={r.x}
-              y={r.y}
-              fontSize="11"
-              fill="#7a9a58"
-              fontFamily="Inter,sans-serif"
-              transform={r.rotate ? `rotate(-90,${r.x},${r.y})` : undefined}
-              opacity="0.9"
-            >
-              {r.text}
-            </text>
-          ))}
-
-          <polyline
-            points={route}
-            fill="none"
-            stroke="var(--app-accent)"
-            strokeWidth="5"
-            strokeDasharray="12 7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
-
-          <rect
-            x={midLabel.x - 28}
-            y={midLabel.y - 12}
-            width="72"
-            height="22"
-            rx="11"
-            fill="var(--app-accent)"
+          <MapResizeHandler />
+          <FitMapBounds userLocation={userLocation} contactLocation={contactLocation} />
+          <Polyline
+            positions={routeLine}
+            pathOptions={{
+              color: "var(--app-accent,#8b6914)",
+              weight: 5,
+              dashArray: "12 8",
+              lineCap: "round",
+            }}
           />
-          <text
-            x={midLabel.x + 8}
-            y={midLabel.y + 4}
-            fontSize="11"
-            fill="white"
-            fontFamily="Inter,sans-serif"
-            textAnchor="middle"
-            fontWeight="bold"
-          >
-            {distance}
-          </text>
-
-          <circle cx={userPin.x} cy={userPin.y} r="14" fill="var(--app-primary)" stroke="white" strokeWidth="3" />
-          <text
-            x={userPin.x}
-            y={userPin.y + 4}
-            fontSize="8"
-            fill="white"
-            fontFamily="Inter,sans-serif"
-            textAnchor="middle"
-            fontWeight="bold"
-          >
-            {userPinText}
-          </text>
-          <rect
-            x={userPin.x - 22}
-            y={userPin.y + 18}
-            width="44"
-            height="16"
-            rx="8"
-            fill="white"
-            opacity="0.95"
-          />
-          <text
-            x={userPin.x}
-            y={userPin.y + 30}
-            fontSize="9"
-            fill="var(--app-primary)"
-            fontFamily="Inter,sans-serif"
-            textAnchor="middle"
-            fontWeight="600"
-          >
-            {userLabel}
-          </text>
-
-          <circle cx={contactPin.x} cy={contactPin.y} r="16" fill="var(--app-accent)" stroke="white" strokeWidth="3" />
-          <text
-            x={contactPin.x}
-            y={contactPin.y + 5}
-            fontSize="9"
-            fill="white"
-            fontFamily="Inter,sans-serif"
-            textAnchor="middle"
-            fontWeight="bold"
-          >
-            {contactPinText}
-          </text>
-          <rect
-            x={contactPin.x - 38}
-            y={contactPin.y + 20}
-            width="76"
-            height="17"
-            rx="8"
-            fill="white"
-            opacity="0.95"
-          />
-          <text
-            x={contactPin.x}
-            y={contactPin.y + 32}
-            fontSize="9"
-            fill="var(--app-primary)"
-            fontFamily="Inter,sans-serif"
-            textAnchor="middle"
-            fontWeight="600"
-          >
-            {contactLabel}
-          </text>
-        </svg>
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
+          <Marker position={[contactLocation.lat, contactLocation.lng]} icon={contactIcon} />
+          <Marker position={[centerLat, centerLng]} icon={distanceIcon} zIndexOffset={1000} />
+        </MapContainer>
       </div>
 
       <div

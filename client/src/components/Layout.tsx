@@ -68,7 +68,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 border-t border-[var(--app-border)] bg-[var(--app-nav-bg)]"
         style={{ paddingBottom: "var(--app-safe-bottom)" }}
       >
-        <div className="flex items-end justify-around px-2 pt-1.5 pb-2">
+        <div className="grid grid-cols-5 items-end px-2 pt-1.5 pb-2">
           {navItems.map((item) => {
             const isActive = item.match(location);
 
@@ -78,7 +78,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <button
                     type="button"
                     data-testid="nav-signal"
-                    className="flex flex-col items-center gap-0.5 -mt-4"
+                    className="w-full flex flex-col items-center gap-0.5 -mt-4"
                   >
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-colors ${
@@ -115,7 +115,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   data-testid={`nav-${item.id}`}
-                  className="flex flex-col items-center gap-0.5 py-0.5 px-2"
+                  className="w-full flex flex-col items-center gap-0.5 py-0.5 px-2"
                 >
                   <Icon
                     className={`w-[18px] h-[18px] ${

@@ -2,7 +2,8 @@
 
 > **Last updated:** 2026-06-20  
 > Split into **Agent** (code) and **You** (dashboards / DNS / env).  
-> See also `progress.md` for deploy notes.
+> See also `progress.md` for deploy notes.  
+> **Before every GitHub push:** read `CAUTION.md` (local test keys vs Vercel live keys).
 
 ---
 
@@ -61,7 +62,7 @@ npm run db:push
 ### P0 — Free infrastructure setup
 
 - [ ] **Clerk:** app at https://dashboard.clerk.com
-- [ ] Local `.env`: `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- [ ] Local `.env`: `pk_test_` / `sk_test_` for `VITE_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (`pk_live_` breaks localhost)
 - [ ] **Neon:** free PostgreSQL at https://neon.tech → `DATABASE_URL` in `.env`
 - [ ] After agent schema change: `npm run db:push` locally **and** on production DB
 - [ ] Test: sign up → add contact → create post → sign out/in → data persists
