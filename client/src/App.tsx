@@ -1,13 +1,16 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { useEffect } from "react";
-import { useAuth } from "@clerk/react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthTokenBridge } from "@/components/AuthTokenBridge";
-import { isOnboarded } from "@/lib/auth-fetch";
+import { useUser } from "@clerk/react";
+import { isOnboarded, markOnboarded } from "@/lib/auth-fetch";
+import { useClerkReady } from "@/hooks/use-clerk-ready";
+import { ThemeProvider } from "@/hooks/use-theme";
 import NotFound from "@/pages/not-found";
+import { PhoneShell } from "@/components/PhoneShell";
 import { Layout } from "@/components/Layout";
 
 import { Home } from "@/pages/Home";
@@ -26,61 +29,66 @@ import AddContact from "@/pages/AddContact";
 import Crisis from "@/pages/Crisis";
 import Resources from "@/pages/Resources";
 import Emergency from "@/pages/Emergency";
+import SignalActive from "@/pages/SignalActive";
+import CompanionAlert from "@/pages/CompanionAlert";
 import AIChat from "@/pages/AIChat";
 import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import Onboarding from "@/pages/Onboarding";
+import Notifications from "@/pages/Notifications";
 
-const STANDALONE_BG = "linear-gradient(145deg, #c8f5ea 0%, #dcd8f9 50%, #fde4d8 100%)";
 
 function StandaloneWrapper({ children }: { children: React.ReactNode }) {
+  return <PhoneShell scrollable>{children}</PhoneShell>;
+}
+
+function isPublicAuthRoute(location: string) {
   return (
-    <div className="min-h-[100dvh] overflow-hidden flex items-start justify-center bg-gray-100">
-      <div
-        className="relative w-full max-w-[430px] h-[100dvh] flex flex-col overflow-y-auto overflow-x-hidden shadow-2xl"
-        style={{ background: STANDALONE_BG }}
-      >
-        {children}
-      </div>
-    </div>
+    location === "/login" ||
+    location === "/sign-up" ||
+    location.startsWith("/login/") ||
+    location.startsWith("/sign-up/") ||
+    location === "/onboarding"
   );
 }
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { authReady, isSignedIn, userId } = useClerkReady();
+  const { user } = useUser();
+  const onPublicRoute = isPublicAuthRoute(location);
+  const isAdmin = user?.publicMetadata?.role === "admin";
+  const hasAccess = isAdmin || isOnboarded(userId);
+
+  const isGuest = !authReady || !isSignedIn;
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (isAdmin && userId) {
+      markOnboarded(userId);
+    }
+  }, [isAdmin, userId]);
 
-    const isAuthRoute =
-      location === "/login" ||
-      location === "/sign-up" ||
-      location.startsWith("/login/") ||
-      location.startsWith("/sign-up/") ||
-      location === "/onboarding";
-
-    if (!isSignedIn && !isAuthRoute) {
+  useEffect(() => {
+    if (!onPublicRoute && isGuest) {
       navigate("/login");
       return;
     }
 
-    if (isSignedIn && isAuthRoute && location !== "/onboarding") {
-      navigate(isOnboarded(userId) ? "/" : "/onboarding");
+    if (!authReady) return;
+
+    if (isSignedIn && onPublicRoute && location !== "/onboarding") {
+      navigate(hasAccess ? "/" : "/onboarding");
       return;
     }
 
-    if (isSignedIn && !isOnboarded(userId) && !isAuthRoute) {
+    if (isSignedIn && !hasAccess && !onPublicRoute) {
       navigate("/onboarding");
     }
-  }, [isLoaded, isSignedIn, userId, location, navigate]);
+  }, [authReady, isSignedIn, isGuest, userId, location, navigate, onPublicRoute, hasAccess]);
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center text-slate-500">
-        Loading…
-      </div>
-    );
+  // No public landing page — send guests straight to login (don't wait for Clerk).
+  if (isGuest && !onPublicRoute) {
+    return <Redirect to="/login" />;
   }
 
   return <>{children}</>;
@@ -107,7 +115,17 @@ function Router() {
             <NewJournalEntry />
           </StandaloneWrapper>
         )} />
+        <Route path="/journals/:id/edit" component={() => (
+          <StandaloneWrapper>
+            <NewJournalEntry />
+          </StandaloneWrapper>
+        )} />
         <Route path="/community/new" component={() => (
+          <StandaloneWrapper>
+            <NewPost />
+          </StandaloneWrapper>
+        )} />
+        <Route path="/community/:id/edit" component={() => (
           <StandaloneWrapper>
             <NewPost />
           </StandaloneWrapper>
@@ -116,6 +134,21 @@ function Router() {
         <Route path="/contacts/new" component={() => (
           <StandaloneWrapper>
             <AddContact />
+          </StandaloneWrapper>
+        )} />
+        <Route path="/contacts/:id/edit" component={() => (
+          <StandaloneWrapper>
+            <AddContact />
+          </StandaloneWrapper>
+        )} />
+        <Route path="/emergency/active/:contactId" component={() => (
+          <StandaloneWrapper>
+            <SignalActive />
+          </StandaloneWrapper>
+        )} />
+        <Route path="/companion/alert/:contactId" component={() => (
+          <StandaloneWrapper>
+            <CompanionAlert />
           </StandaloneWrapper>
         )} />
         <Route path="/emergency" component={() => (
@@ -137,6 +170,7 @@ function Router() {
               <Route path="/crisis" component={Crisis} />
               <Route path="/resources" component={Resources} />
               <Route path="/profile" component={Profile} />
+              <Route path="/notifications" component={Notifications} />
               <Route component={NotFound} />
             </Switch>
           </Layout>
@@ -148,13 +182,15 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthTokenBridge />
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthTokenBridge />
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

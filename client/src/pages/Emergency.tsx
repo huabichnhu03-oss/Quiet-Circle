@@ -1,174 +1,146 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { ChevronRight, Plus, Search } from "lucide-react";
 import { type Contact } from "@shared/schema";
+import { contactInitials, contactTags, setActiveSignal } from "@/lib/signal-map";
+import { hasDemoContacts, isDemoContact } from "@/lib/demo-contacts";
 import { IconArrowLeft } from "@/components/Icons";
 
-type EmergencyState = "idle" | "notifying" | "done";
-
 export default function Emergency() {
-  const [state, setState] = useState<EmergencyState>("idle");
   const [, setLocation] = useLocation();
+  const [search, setSearch] = useState("");
 
-  const { data: contacts = [] } = useQuery<Contact[]>({
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
 
-  const handleSOS = () => {
-    if (state !== "idle") return;
-    setState("notifying");
-    setTimeout(() => setState("done"), 3000);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((c) =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q),
+    );
+  }, [contacts, search]);
+
+  const handleSelectContact = (contact: Contact) => {
+    setActiveSignal({
+      contactId: contact.id,
+      contactName: `${contact.firstName} ${contact.lastName}`,
+      startedAt: new Date().toISOString(),
+    });
+    setLocation(`/emergency/active/${contact.id}`);
   };
 
   return (
-    <div className="flex flex-col min-h-full relative">
-      {/* Back */}
+    <div className="flex flex-col min-h-full">
       <div className="flex items-center gap-3 px-5 pt-5 mb-2">
         <button
+          type="button"
           data-testid="button-back"
           onClick={() => setLocation("/")}
-          className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white border border-slate-300"
+          className="w-9 h-9 flex items-center justify-center rounded-2xl app-card"
         >
           <IconArrowLeft size={18} />
         </button>
-        <h1 className="text-lg font-bold text-gray-800">Emergency Alert</h1>
+        <h1 className="text-lg font-bold text-[var(--app-text)]">Signal for Help</h1>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
-        {/* SOS Button */}
-        <div className="relative mb-8">
-          {/* Pulse rings when notifying */}
-          {state === "notifying" && (
-            <>
-              <div
-                className="absolute inset-0 rounded-full animate-ping"
-                style={{ background: "rgba(239,68,68,0.2)" }}
-              />
-              <div
-                className="absolute -inset-4 rounded-full animate-ping"
-                style={{ background: "rgba(239,68,68,0.1)", animationDelay: "0.3s" }}
-              />
-            </>
-          )}
-          <button
-            data-testid="button-sos"
-            onClick={handleSOS}
-            disabled={state !== "idle"}
-            className="w-40 h-40 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-all duration-300 relative z-10"
-            style={{
-              background:
-                state === "done"
-                  ? "linear-gradient(135deg, #10b981, #34d399)"
-                  : "linear-gradient(135deg, #ef4444, #f87171)",
-              boxShadow:
-                state === "notifying"
-                  ? "0 0 60px rgba(239,68,68,0.6), 0 20px 60px rgba(239,68,68,0.4)"
-                  : "0 12px 40px rgba(239,68,68,0.35)",
-            }}
-          >
-            {state === "done" ? (
-              <>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <path d="M12 24L20 32L36 16" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="text-white font-bold text-sm mt-1">Sent!</span>
-              </>
-            ) : (
-              <>
-                <span className="text-white font-black text-3xl leading-none">SOS</span>
-                <span className="text-white/80 text-xs font-medium mt-1">
-                  {state === "notifying" ? "Sending..." : "Hold to alert"}
-                </span>
-              </>
+      <div className="flex-1 overflow-y-auto px-5 pb-8">
+        <p className="text-[12px] text-[var(--app-muted)] mb-3">
+          Who would you like to notify?
+        </p>
+
+        {hasDemoContacts(contacts) && (
+          <div className="app-card-muted rounded-xl px-3 py-2.5 mb-3 text-[11px] text-[var(--app-muted)] leading-relaxed">
+            Demo contacts are loaded for prototyping. Tap one to try the signal map flow.
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 app-card rounded-xl px-3 py-2.5 mb-4">
+          <Search className="w-4 h-4 text-[var(--app-muted)] flex-shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search contacts"
+            data-testid="input-signal-search"
+            className="flex-1 text-sm bg-transparent outline-none placeholder:text-[var(--app-muted)] text-[var(--app-text)]"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-20 rounded-xl app-card animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center app-card-muted rounded-2xl p-6 mb-4 space-y-4">
+            <p className="text-sm text-[var(--app-muted)]">
+              {contacts.length === 0
+                ? "No emergency contacts yet."
+                : "No contacts match your search."}
+            </p>
+            {contacts.length === 0 && (
+              <button
+                type="button"
+                data-testid="button-add-signal-contact-empty"
+                onClick={() => setLocation("/contacts/new?from=signal")}
+                className="btn-primary text-sm font-semibold px-5 py-2.5 rounded-full"
+              >
+                Add Emergency Contact
+              </button>
             )}
-          </button>
-        </div>
-
-        {/* Status message */}
-        <div className="text-center mb-8">
-          {state === "idle" && (
-            <p className="text-sm text-slate-600 leading-relaxed max-w-[240px]">
-              Tap to immediately notify your safety circle that you need help.
-            </p>
-          )}
-          {state === "notifying" && (
-            <p className="text-sm font-semibold text-red-500 animate-pulse">
-              Notifying your circle…
-            </p>
-          )}
-          {state === "done" && (
-            <p className="text-sm font-semibold text-emerald-600">
-              Your circle has been notified. Help is on the way. 💚
-            </p>
-          )}
-        </div>
-
-        {/* Contact list */}
-        {contacts.length > 0 && (
-          <div className="w-full">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-3 text-center">
-              {state === "idle" ? "Your safety circle" : "Being notified"}
-            </p>
-            <div className="flex flex-col gap-2">
-              {contacts.map((contact, i) => (
-                <div
-                  key={contact.id}
-                  data-testid={`alert-contact-${contact.id}`}
-                  className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-slate-300"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #f472b6, #a78bfa)" }}
-                  >
-                    {contact.firstName[0]}{contact.lastName[0]}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-800">
-                      {contact.firstName} {contact.lastName}
-                    </p>
-                    <p className="text-xs text-slate-600">{contact.phone}</p>
-                  </div>
-                  {state === "notifying" && (
-                    <div
-                      className="w-5 h-5 rounded-full border-2 border-red-400 border-t-transparent animate-spin"
-                      style={{ animationDelay: `${i * 0.2}s` }}
-                    />
-                  )}
-                  {state === "done" && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#10b981" opacity="0.15" />
-                      <path d="M8 12L11 15L16 9" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
+          </div>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {filtered.map((contact) => (
+              <button
+                key={contact.id}
+                type="button"
+                data-testid={`signal-contact-${contact.id}`}
+                onClick={() => handleSelectContact(contact)}
+                className="w-full app-card rounded-xl px-3 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+              >
+                <div className="w-10 h-10 rounded-full bg-[var(--app-primary)] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  {contactInitials(contact.firstName, contact.lastName)}
                 </div>
-              ))}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-[var(--app-text)]">
+                    {contact.firstName} {contact.lastName}
+                  </p>
+                  <p className="text-[11px] text-[var(--app-muted)]">{contact.phone}</p>
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    {isDemoContact(contact) && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800">
+                        Demo
+                      </span>
+                    )}
+                    {contactTags(contact).map((tag) => (
+                      <span key={tag} className="app-tag text-[10px] px-2 py-0.5 rounded-full font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[var(--app-muted)] flex-shrink-0" />
+              </button>
+            ))}
           </div>
         )}
 
-        {contacts.length === 0 && state === "idle" && (
-          <div className="text-center bg-amber-50 rounded-2xl p-4 border border-amber-100">
-            <p className="text-xs text-amber-700 font-medium">
-              No contacts in your safety circle yet.{" "}
-              <a href="/contacts/new" className="underline font-bold">Add someone now.</a>
-            </p>
+        <button
+          type="button"
+          data-testid="button-add-signal-contact"
+          onClick={() => setLocation("/contacts/new?from=signal")}
+          className="flex items-center gap-2 text-[var(--app-primary)] text-[13px] font-semibold"
+        >
+          <div className="w-6 h-6 rounded-full border-2 border-[var(--app-primary)] flex items-center justify-center">
+            <Plus className="w-3.5 h-3.5" />
           </div>
-        )}
+          Add Emergency Contact
+        </button>
       </div>
-
-      {/* Cancel if notifying */}
-      {state === "notifying" && (
-        <div className="px-8 pb-8">
-          <button
-            data-testid="button-cancel-alert"
-            onClick={() => setState("idle")}
-            className="w-full py-3 rounded-2xl border border-slate-300 text-sm font-medium text-slate-600 bg-white"
-          >
-            Cancel Alert
-          </button>
-        </div>
-      )}
     </div>
   );
 }

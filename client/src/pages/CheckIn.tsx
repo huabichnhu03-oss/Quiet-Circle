@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { IconMenu, IconBell } from "@/components/Icons";
+import { IconHeadphones, IconMenu, IconBell, IconSun } from "@/components/Icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { NavDrawer } from "@/components/NavDrawer";
-
-const CHECKIN_BG = "linear-gradient(145deg, #c8f5ea 0%, #dcd8f9 50%, #fde4d8 100%)";
+import { PhoneShell } from "@/components/PhoneShell";
+import { CHECKIN_MOOD_MAP } from "@/lib/mood-utils";
 
 const moods = [
   {
@@ -105,25 +105,26 @@ export default function CheckIn() {
     mutationFn: (mood: string) => apiRequest("POST", "/api/mood-entries", { mood }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/mood-entries"] });
-      toast({ title: "Mood saved! 🌟", description: "We're listening." });
+      toast({ title: "Mood saved!", description: "We're listening." });
       setTimeout(() => setLocation("/"), 800);
     },
   });
 
   const handleListeningPress = () => {
     if (!selected || mutation.isPending) return;
-    mutation.mutate(selected);
+    mutation.mutate(CHECKIN_MOOD_MAP[selected] ?? selected);
   };
 
   return (
-    <div
-      className="min-h-[100dvh] overflow-hidden flex flex-col relative"
-      style={{ background: CHECKIN_BG }}
-    >
+    <PhoneShell>
       <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
+      <div className="flex flex-col flex-1 min-h-0">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-2">
+      <div
+        className="flex items-center justify-between px-4 sm:px-5 pt-4 pb-2"
+        style={{ paddingTop: "calc(1rem + var(--app-safe-top))" }}
+      >
         <button
           data-testid="button-close-checkin"
           onClick={() => setLocation("/")}
@@ -142,7 +143,13 @@ export default function CheckIn() {
           >
             <IconMenu size={18} />
           </button>
-          <button className="w-9 h-9 flex items-center justify-center rounded-2xl glass-card">
+          <button
+            type="button"
+            data-testid="button-bell"
+            onClick={() => setLocation("/notifications")}
+            className="w-9 h-9 flex items-center justify-center rounded-2xl glass-card"
+            aria-label="Notifications"
+          >
             <IconBell size={18} />
           </button>
         </div>
@@ -151,17 +158,16 @@ export default function CheckIn() {
       {/* Header text */}
       <div className="flex flex-col items-center text-center px-8 pt-6 pb-2">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">☀️</span>
-          <span className="text-sm font-medium text-slate-600">Good Morning</span>
+          <IconSun size={18} color="#f59e0b" />
+          <span className="text-sm font-medium text-[var(--app-muted)]">Good Morning</span>
         </div>
         <h1
-          className="text-[30px] font-bold text-gray-800 leading-tight"
-          style={{ fontFamily: "'Khand', sans-serif" }}
+          className="text-[28px] sm:text-[30px] font-bold text-[var(--app-text)] leading-tight app-brand"
           data-testid="checkin-heading"
         >
           How are you really<br />feeling today?
         </h1>
-        <p className="text-sm text-slate-600 mt-3 leading-relaxed max-w-[280px]">
+        <p className="text-sm text-[var(--app-muted)] mt-3 leading-relaxed max-w-[280px]">
           Take a moment to reflect on your emotions<br />and assess your mood today.
         </p>
       </div>
@@ -204,17 +210,20 @@ export default function CheckIn() {
             className="absolute text-center pointer-events-none"
             style={{ left: 140 - 50, top: 100 + 65 + 8, width: 100 }}
           >
-            <span className="text-[13px] font-bold text-gray-700">Happies</span>
+            <span className="text-[13px] font-bold text-[var(--app-text)]">Happies</span>
           </div>
         </div>
       </div>
 
       {/* Listening to you button */}
-      <div className="px-8 pb-12 flex flex-col items-center gap-4">
+      <div
+        className="px-4 sm:px-8 pb-12 flex flex-col items-center gap-4"
+        style={{ paddingBottom: "calc(3rem + var(--app-safe-bottom))" }}
+      >
         {selected && (
-          <p className="text-sm text-slate-600 animate-fade-in" data-testid="selected-label">
+          <p className="text-sm text-[var(--app-muted)] animate-fade-in" data-testid="selected-label">
             Feeling{" "}
-            <span className="font-semibold text-gray-700 capitalize">{selected}</span>
+            <span className="font-semibold text-[var(--app-text)] capitalize">{selected}</span>
             {" "}today
           </p>
         )}
@@ -222,38 +231,31 @@ export default function CheckIn() {
           data-testid="button-listening"
           onClick={handleListeningPress}
           disabled={mutation.isPending}
-          className={`flex flex-col items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${
+          className={`flex flex-col items-center justify-center rounded-full transition-all duration-300 active:scale-95 glass-card ${
             selected ? "opacity-100" : "opacity-70"
           }`}
           style={{
             width: 130,
             height: 130,
-            background: "rgba(255,255,255,0.60)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            border: "2px solid rgba(255,255,255,0.75)",
-            boxShadow: selected
-              ? "0 8px 32px rgba(180,160,220,0.35), inset 0 1px 0 rgba(255,255,255,0.9)"
-              : "0 4px 16px rgba(180,160,220,0.18), inset 0 1px 0 rgba(255,255,255,0.8)",
           }}
         >
-          <span className="text-2xl mb-1">🎧</span>
-          <span className="text-xs font-semibold text-gray-600 text-center leading-tight">
+          <IconHeadphones size={28} color="var(--app-accent)" className="mb-1" />
+          <span className="text-xs font-semibold text-[var(--app-muted)] text-center leading-tight">
             {mutation.isPending ? "Saving…" : "Listening\nto you"}
           </span>
         </button>
 
-        {/* Waveform decoration */}
         <div className="flex items-center gap-1 mt-1 opacity-40">
           {[3, 6, 10, 14, 10, 7, 4, 7, 11, 15, 9, 5, 3].map((h, i) => (
             <div
               key={i}
-              className="rounded-full bg-violet-400"
+              className="rounded-full bg-[var(--app-accent)]"
               style={{ width: 3, height: h, opacity: 0.6 + (i % 3) * 0.15 }}
             />
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </PhoneShell>
   );
 }

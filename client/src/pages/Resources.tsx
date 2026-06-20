@@ -1,153 +1,143 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-
-const CATEGORIES = [
-  {
-    id: "mental-health",
-    title: "Mental Health",
-    desc: "Articles, guides, and tools for emotional wellbeing",
-    items: ["Understanding anxiety", "Mindfulness basics", "Managing depression"],
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#ddd6fe" />
-        <path d="M10 16C10 12.7 12.7 10 16 10C19.3 10 22 12.7 22 16" stroke="#8b5cf6" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M10 16C10 18 11.2 19.8 13 20.7L13 23H19V20.7C20.8 19.8 22 18 22 16" stroke="#8b5cf6" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="13" y="23" width="6" height="1.5" rx="0.75" fill="#8b5cf6" />
-      </svg>
-    ),
-    color: "#8b5cf6",
-    bg: "rgba(139,92,246,0.07)",
-  },
-  {
-    id: "self-care",
-    title: "Self-Care Tools",
-    desc: "Breathing exercises, grounding techniques, and routines",
-    items: ["4-7-8 breathing", "Body scan meditation", "Gratitude journaling"],
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#fce7f3" />
-        <path d="M16 22C16 22 9 18 9 13C9 10.8 10.8 9 13 9C14.2 9 15.3 9.5 16 10.4C16.7 9.5 17.8 9 19 9C21.2 9 23 10.8 23 13C23 18 16 22 16 22Z" fill="#ec4899" opacity="0.7" />
-      </svg>
-    ),
-    color: "#ec4899",
-    bg: "rgba(236,72,153,0.07)",
-  },
-  {
-    id: "lgbtq",
-    title: "LGBTQ+ Resources",
-    desc: "Community support, identity guides, and advocacy",
-    items: ["Coming out guide", "Pronoun resources", "Legal name change guide"],
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#fef3c7" />
-        <path d="M8 20 L16 8 L24 20Z" fill="#f59e0b" opacity="0.8" />
-        <circle cx="16" cy="21" r="3" fill="#f59e0b" opacity="0.6" />
-      </svg>
-    ),
-    color: "#f59e0b",
-    bg: "rgba(245,158,11,0.07)",
-  },
-  {
-    id: "crisis",
-    title: "Crisis Support",
-    desc: "Immediate resources when you need urgent help",
-    items: ["Trans Lifeline: 877-565-8860", "Crisis Text Line: Text HOME to 741741", "Trevor Project: 1-866-488-7386"],
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#dcfce7" />
-        <path d="M16 8V24M8 16H24" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    ),
-    color: "#10b981",
-    bg: "rgba(16,185,129,0.07)",
-  },
-  {
-    id: "community",
-    title: "Community",
-    desc: "Forums, peer support groups, and local connections",
-    items: ["Find local groups", "Online forums", "Peer mentorship"],
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#e0e7ff" />
-        <circle cx="16" cy="12" r="3.5" fill="#6366f1" opacity="0.8" />
-        <circle cx="9" cy="14" r="2.5" fill="#6366f1" opacity="0.5" />
-        <circle cx="23" cy="14" r="2.5" fill="#6366f1" opacity="0.5" />
-        <path d="M8 24C8 20.7 11.6 18 16 18C20.4 18 24 20.7 24 24" stroke="#6366f1" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      </svg>
-    ),
-    color: "#6366f1",
-    bg: "rgba(99,102,241,0.07)",
-  },
-];
+import { BookMarked, MapPin, Search } from "lucide-react";
+import { EditToggle } from "@/components/ItemActions";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import { useToast } from "@/hooks/use-toast";
+import type { ResourceItem } from "@shared/profile-data";
 
 export default function Resources() {
   const [, setLocation] = useLocation();
-  return (
-    <div className="flex flex-col min-h-full relative">
-      {/* AI Chat FAB */}
-      <button
-        data-testid="button-ai-chat"
-        onClick={() => setLocation("/ai-chat")}
-        className="fixed bottom-[84px] right-4 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-95"
-        style={{
-          background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-          boxShadow: "0 4px 20px rgba(139,92,246,0.45)",
-        }}
-        aria-label="Open Wellness Consultant"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C6.5 2 2 5.9 2 10.8C2 14.1 3.9 17 6.8 18.5L6 22L10.1 19.8C10.7 19.9 11.3 20 12 20C17.5 20 22 16.1 22 10.8C22 5.9 17.5 2 12 2Z" fill="white" opacity="0.9" />
-          <circle cx="8.5" cy="11" r="1.2" fill="#8b5cf6" />
-          <circle cx="12" cy="11" r="1.2" fill="#8b5cf6" />
-          <circle cx="15.5" cy="11" r="1.2" fill="#8b5cf6" />
-        </svg>
-      </button>
+  const { profile, updateProfile, isSaving } = useUserProfile();
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<ResourceItem[]>(profile.resources);
 
-      {/* Header */}
-      <div className="px-5 pt-10 pb-5">
-        <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest mb-1">Explore</p>
-        <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-        <p className="text-sm text-slate-600 mt-1">Tools and support, curated for you.</p>
+  const scrollToRecentlyAdded = () => {
+    document.getElementById("recently-added")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const startEditing = () => {
+    setDraft(profile.resources);
+    setEditing(true);
+  };
+
+  const saveResources = async () => {
+    try {
+      await updateProfile({ resources: draft });
+      toast({ title: "Resources updated" });
+      setEditing(false);
+    } catch {
+      toast({ title: "Could not save resources", variant: "destructive" });
+    }
+  };
+
+  const resources = editing ? draft : profile.resources;
+
+  const updateResource = (index: number, patch: Partial<ResourceItem>) => {
+    setDraft((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  };
+
+  return (
+    <div className="flex flex-col min-h-full px-4 pb-6">
+      <div className="flex items-center justify-between mb-4 pt-1">
+        <h2 className="text-[18px] font-bold text-[var(--app-text)]">Resource Hub</h2>
+        <EditToggle
+          editing={editing}
+          onToggle={() => (editing ? setEditing(false) : startEditing())}
+          onSave={saveResources}
+          isSaving={isSaving}
+        />
       </div>
 
-      {/* Category cards */}
-      <div className="px-5 pb-8 flex flex-col gap-4">
-        {CATEGORIES.map((cat) => (
-          <div
-            key={cat.id}
-            data-testid={`resource-${cat.id}`}
-            className="rounded-3xl border border-slate-200 shadow-sm p-5"
-            style={{ background: cat.bg }}
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            data-testid="resource-browse"
+            onClick={scrollToRecentlyAdded}
+            className="w-[calc(50%-6px)] aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-white"
+            style={{ background: "var(--app-primary-dark)" }}
           >
-            <div className="flex items-start gap-4 mb-3">
-              <div className="flex-shrink-0">{cat.icon}</div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800">{cat.title}</h3>
-                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{cat.desc}</p>
-              </div>
+            <Search className="w-10 h-10 opacity-80" />
+            <span className="text-[13px] font-semibold text-center leading-tight px-2">
+              Browse Resources
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="resource-services"
+            onClick={() => setLocation("/crisis")}
+            className="w-[calc(50%-6px)] aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-white shadow-lg"
+            style={{ background: "var(--app-primary)" }}
+          >
+            <MapPin className="w-10 h-10" />
+            <span className="text-[13px] font-semibold text-center leading-tight px-2">
+              Find Local Services
+            </span>
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            data-testid="resource-tutorials"
+            onClick={() => setLocation("/breathe")}
+            className="w-[calc(50%-6px)] aspect-square app-card-muted rounded-2xl flex flex-col items-center justify-center gap-3"
+          >
+            <BookMarked className="w-8 h-8 text-[var(--app-accent)]" />
+            <span className="text-[13px] font-semibold text-[var(--app-text)]">
+              Tutorials
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="recently-added" className="mt-6 space-y-3 scroll-mt-4">
+        <p className="text-[13px] font-bold text-[var(--app-text)]">
+          Recently added
+        </p>
+        {resources.map((resource, index) => (
+          editing ? (
+            <div key={resource.id} className="app-card rounded-xl px-4 py-3 space-y-2">
+              <input
+                value={resource.title}
+                onChange={(e) => updateResource(index, { title: e.target.value })}
+                className="w-full app-input rounded-lg px-3 py-2 text-sm font-bold"
+              />
+              <input
+                value={resource.description}
+                onChange={(e) => updateResource(index, { description: e.target.value })}
+                className="w-full app-input rounded-lg px-3 py-2 text-xs"
+              />
+              <input
+                value={resource.tag}
+                onChange={(e) => updateResource(index, { tag: e.target.value })}
+                className="w-full app-input rounded-lg px-3 py-2 text-xs"
+              />
+              <input
+                value={resource.href}
+                onChange={(e) => updateResource(index, { href: e.target.value })}
+                className="w-full app-input rounded-lg px-3 py-2 text-xs"
+                placeholder="/breathe"
+              />
             </div>
-            <div className="flex flex-col gap-2">
-              {cat.items.map((item) => (
-                <button
-                  key={item}
-                  className="flex items-center gap-2 text-left group"
-                  data-testid={`resource-item-${item.substring(0, 10).replace(/\s+/g, "-").toLowerCase()}`}
-                >
-                  <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: cat.color }}
-                  />
-                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
-                </button>
-              ))}
-            </div>
+          ) : (
             <button
-              className="mt-3 text-xs font-bold"
-              style={{ color: cat.color }}
-              data-testid={`explore-${cat.id}`}
+              key={resource.id}
+              type="button"
+              data-testid={`resource-${resource.id}`}
+              onClick={() => setLocation(resource.href)}
+              className="w-full text-left app-card rounded-xl px-4 py-3 active:scale-[0.98] transition-transform"
             >
-              Explore →
+              <p className="text-[13px] font-bold text-[var(--app-text)]">{resource.title}</p>
+              <p className="text-[11px] text-[var(--app-muted)]">{resource.description}</p>
+              <span className="inline-block mt-2 text-[10px] app-tag px-2.5 py-0.5 rounded-full font-medium">
+                {resource.tag}
+              </span>
             </button>
-          </div>
+          )
         ))}
       </div>
     </div>

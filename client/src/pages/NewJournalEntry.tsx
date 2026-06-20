@@ -1,16 +1,17 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { IconArrowLeft } from "@/components/Icons";
+import { IconArrowLeft, IconMood, type MoodLevel } from "@/components/Icons";
+import { type JournalEntry } from "@shared/schema";
 
-const moodOptions = [
-  { id: "great", label: "Great", emoji: "😄" },
-  { id: "good", label: "Good", emoji: "😊" },
-  { id: "okay", label: "Okay", emoji: "😐" },
-  { id: "not_great", label: "Not Great", emoji: "😕" },
-  { id: "bad", label: "Bad", emoji: "😔" },
+const moodOptions: { id: string; label: string; level: MoodLevel }[] = [
+  { id: "great", label: "Great", level: "great" },
+  { id: "good", label: "Good", level: "good" },
+  { id: "okay", label: "Okay", level: "okay" },
+  { id: "not_great", label: "Not Great", level: "low" },
+  { id: "bad", label: "Bad", level: "struggling" },
 ];
 
 const FORMAT_FONTS = ["Default", "Serif", "Mono"];
@@ -19,9 +20,17 @@ const FORMAT_ALIGNS = ["≡", "≡", "≡"];
 const FORMAT_COLORS = ["#1f2937", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b"];
 
 export default function NewJournalEntry() {
+  const params = useParams<{ id?: string }>();
+  const entryId = params.id;
+  const isEditing = Boolean(entryId);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: existing } = useQuery<JournalEntry>({
+    queryKey: ["/api/journal-entries", entryId],
+    enabled: isEditing,
+  });
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -31,17 +40,28 @@ export default function NewJournalEntry() {
   const [activeAlign, setActiveAlign] = useState(0);
   const [activeColor, setActiveColor] = useState(0);
 
+  useEffect(() => {
+    if (!existing) return;
+    setTitle(existing.title);
+    setContent(existing.content);
+    setMood(existing.mood ?? "good");
+  }, [existing]);
+
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   const saveMutation = useMutation({
-    mutationFn: (publish: boolean) =>
-      apiRequest("POST", "/api/journal-entries", { title, content, mood }),
-    onSuccess: (_, publish) => {
+    mutationFn: () => {
+      const payload = { title, content, mood };
+      return isEditing
+        ? apiRequest("PATCH", `/api/journal-entries/${entryId}`, payload)
+        : apiRequest("POST", "/api/journal-entries", payload);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/journal-entries"] });
       toast({
-        title: publish ? "Entry published! 📓" : "Draft saved! ✏️",
+        title: isEditing ? "Entry updated!" : "Entry saved!",
         description: "Your thoughts are safe here.",
       });
       setLocation("/journals");
@@ -55,34 +75,41 @@ export default function NewJournalEntry() {
         <button
           data-testid="button-back"
           onClick={() => setLocation("/journals")}
-          className="w-9 h-9 flex items-center justify-center rounded-2xl bg-white border border-slate-300"
+          className="w-9 h-9 flex items-center justify-center rounded-2xl app-card text-[var(--app-text)]"
         >
           <IconArrowLeft size={18} />
         </button>
-        <h1 className="text-lg font-bold text-slate-900">New Entry</h1>
+        <h1 className="text-lg font-bold text-[var(--app-text)]">
+          {isEditing ? "Edit Entry" : "New Entry"}
+        </h1>
       </div>
 
       {/* Date */}
       <div className="px-5 mb-3">
-        <p className="text-xs text-slate-600 font-medium">{today}</p>
+        <p className="text-xs text-[var(--app-muted)] font-medium">{today}</p>
       </div>
 
       {/* Mood selector */}
       <div className="px-5 mb-4">
-        <p className="text-xs font-semibold text-slate-600 mb-2">How are you feeling?</p>
+        <p className="text-xs font-semibold text-[var(--app-muted)] mb-2">How are you feeling?</p>
         <div className="flex gap-2 flex-wrap">
           {moodOptions.map((m) => (
             <button
               key={m.id}
               data-testid={`mood-${m.id}`}
               onClick={() => setMood(m.id)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 mood === m.id
-                  ? "bg-violet-600 text-white border-violet-600"
-                  : "bg-white text-gray-700 border-slate-300"
+                  ? "pill-active border-transparent"
+                  : "pill-inactive"
               }`}
             >
-              {m.emoji} {m.label}
+              <IconMood
+                level={m.level}
+                size={14}
+                color={mood === m.id ? "white" : "var(--app-muted)"}
+              />
+              {m.label}
             </button>
           ))}
         </div>
@@ -95,7 +122,7 @@ export default function NewJournalEntry() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Give your entry a title..."
-          className="w-full text-xl font-bold text-slate-900 bg-white rounded-xl border border-slate-300 px-4 py-2 outline-none placeholder-gray-400"
+          className="w-full text-xl font-bold text-[var(--app-text)] app-input px-4 py-2 outline-none placeholder-gray-400"
         />
       </div>
 
@@ -106,13 +133,13 @@ export default function NewJournalEntry() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write freely. This is just for you..."
-          className="w-full min-h-[200px] text-sm text-slate-900 bg-white rounded-2xl border border-slate-300 p-4 outline-none resize-none placeholder-gray-400 leading-relaxed"
+          className="w-full min-h-[200px] text-sm text-[var(--app-text)] app-input rounded-2xl p-4 outline-none resize-none placeholder-gray-400 leading-relaxed"
         />
       </div>
 
       {/* Formatting toolbar */}
       <div className="px-5 mb-5">
-        <div className="bg-white rounded-2xl border border-slate-300 p-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
+        <div className="app-input rounded-2xl p-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
           {/* Font */}
           <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
             {FORMAT_FONTS.map((f, i) => (
@@ -121,7 +148,7 @@ export default function NewJournalEntry() {
                 data-testid={`fmt-font-${i}`}
                 onClick={() => setActiveFont(i)}
                 className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
-                  activeFont === i ? "bg-gray-900 text-white" : "text-slate-600"
+                  activeFont === i ? "pill-active" : "text-[var(--app-muted)]"
                 }`}
               >
                 {f}
@@ -139,7 +166,7 @@ export default function NewJournalEntry() {
                 )
               }
               className={`w-7 h-7 rounded-lg text-xs font-bold transition-all flex-shrink-0 ${
-                activeStyle.includes(i) ? "bg-gray-900 text-white" : "text-slate-600"
+                activeStyle.includes(i) ? "pill-active" : "text-[var(--app-muted)]"
               } ${i === 0 ? "font-black" : i === 1 ? "italic" : "underline"}`}
             >
               {s}
@@ -153,7 +180,7 @@ export default function NewJournalEntry() {
                 data-testid={`fmt-align-${i}`}
                 onClick={() => setActiveAlign(i)}
                 className={`w-7 h-7 rounded-lg text-xs flex-shrink-0 transition-all ${
-                  activeAlign === i ? "bg-gray-900 text-white" : "text-slate-600"
+                  activeAlign === i ? "pill-active" : "text-[var(--app-muted)]"
                 }`}
               >
                 {FORMAT_ALIGNS[i]}
@@ -182,26 +209,26 @@ export default function NewJournalEntry() {
         <button
           data-testid="button-discard"
           onClick={() => setLocation("/journals")}
-          className="flex-1 py-3 rounded-xl border border-slate-300 text-sm font-medium text-slate-600 bg-white active:scale-95 transition-transform"
+          className="flex-1 py-3 rounded-xl border border-slate-300 text-sm font-medium text-[var(--app-muted)] bg-white active:scale-95 transition-transform"
         >
           Discard
         </button>
         <button
           data-testid="button-save-draft"
-          onClick={() => saveMutation.mutate(false)}
+          onClick={() => saveMutation.mutate()}
           disabled={!title || !content || saveMutation.isPending}
-          className="flex-1 py-3 rounded-xl text-sm font-bold text-violet-600 bg-violet-50 border border-violet-200 disabled:opacity-50 active:scale-95 transition-transform"
+          className="flex-1 py-3 rounded-xl text-sm font-bold app-tag border border-[var(--app-border)] disabled:opacity-50 active:scale-95 transition-transform"
         >
-          Save
+          {saveMutation.isPending ? "Saving..." : "Save"}
         </button>
         <button
           data-testid="button-publish-journal"
-          onClick={() => saveMutation.mutate(true)}
+          onClick={() => saveMutation.mutate()}
           disabled={!title || !content || saveMutation.isPending}
           className="flex-1 py-3 rounded-xl text-sm font-bold text-white shadow-md disabled:opacity-50 active:scale-95 transition-transform"
           style={{ background: "linear-gradient(135deg, #8b5cf6, #a78bfa)" }}
         >
-          {saveMutation.isPending ? "Saving..." : "Publish"}
+          {saveMutation.isPending ? "Saving..." : isEditing ? "Update" : "Publish"}
         </button>
       </div>
     </div>
