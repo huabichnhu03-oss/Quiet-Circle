@@ -71,16 +71,19 @@ Work completed in the latest agent session. Use this section to pick up where we
 ### ⚠️ Deploy status
 
 - **Live and working:** https://quiet-circle.vercel.app (homepage + `/api/mood-entries` return 200)
-- Latest Vercel fix on GitHub: `3267007` — build outputs to `api/_server/`, bundled via `includeFiles`
+- **CLI project preview:** https://quiet-circle-gamma.vercel.app — same codebase, redeployed via Vercel CLI
+- Latest commit on GitHub: `7e6a1d4` — auth refactor + DatabaseStorage + Vercel bundle fixes
 - Vercel env vars needed for auth emails: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL=https://quiet-circle.vercel.app`
 - Optional persistence: `DATABASE_URL` (Neon/Supabase) + run `npm run db:push`
+- **Dashboard settings:** Framework = Other, Output Directory = `dist/public`, Node.js = 20.x
 
-### 🔄 In progress (uncommitted)
+### ✅ Recently completed (2026-06-20)
 
-- **Auth refactor:** email/password sign-up + 6-digit verification code (replacing magic-link)
-  - `server/auth.ts`, `server/email.ts`, `server/routes.ts`, `Login.tsx`, `VerifyEmail.tsx`
-  - Users persist to PostgreSQL when `DATABASE_URL` is set
-- **DatabaseStorage** implemented in `server/storage.ts` — mood/journal/contacts/posts use Postgres when configured
+- **Auth refactor deployed:** email/password sign-up + 6-digit verification code (replaces magic-link)
+  - `POST /api/auth/register`, `/login`, `/verify-email`, `/resend-code`
+  - `Login.tsx`, `VerifyEmail.tsx` wired
+- **DatabaseStorage** — mood/journal/contacts/posts persist when `DATABASE_URL` is set
+- **Vercel bundle fix:** build outputs to `api/_server/`, bundled via `includeFiles`, static copy to `dist/public`
 
 ### 🔴 Not done yet — priority for next agent
 
