@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { SignOutButton, useUser } from "@clerk/react";
+import { clearOnboarding } from "@/lib/auth-fetch";
 import { IconMenu, IconBell, IconBed, IconHeart, IconChevronRight } from "@/components/Icons";
 import { NavDrawer } from "@/components/NavDrawer";
 import { IllustrationCommunity } from "@/components/Illustrations";
@@ -77,15 +78,13 @@ function StatCard({ type, label, value, bg }: { type: "activity" | "body" | "hea
 
 export default function Profile() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [, navigate] = useLocation();
+  const { user } = useUser();
 
-  const handleSignOut = () => {
-    localStorage.removeItem("onboarded");
-    localStorage.removeItem("onboarding_data");
-    localStorage.removeItem("user_email");
-    localStorage.removeItem("user_name");
-    navigate("/login");
-  };
+  const displayName =
+    user?.fullName ||
+    user?.firstName ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+    "MoodMind user";
 
   return (
     <div className="flex flex-col min-h-full relative">
@@ -141,7 +140,7 @@ export default function Profile() {
             className="text-[24px] font-bold text-gray-800"
             style={{ fontFamily: "'Khand', sans-serif" }}
             data-testid="profile-name"
-          >Chiara Advani</h2>
+          >{displayName}</h2>
         </div>
 
         <div className="flex items-center gap-2" data-testid="profile-tags">
@@ -207,19 +206,23 @@ export default function Profile() {
 
       {/* Sign out */}
       <div className="px-5 pb-6">
-        <button
-          data-testid="button-sign-out"
-          onClick={handleSignOut}
-          className="w-full py-3.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 border border-gray-200"
-          style={{ background: "rgba(255,255,255,0.7)", color: "#ef4444" }}
-        >
+        <SignOutButton signOutOptions={{ redirectUrl: "/login" }}>
+          <button
+            data-testid="button-sign-out"
+            onClick={() => {
+              if (user?.id) clearOnboarding(user.id);
+            }}
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 border border-gray-200"
+            style={{ background: "rgba(255,255,255,0.7)", color: "#ef4444" }}
+          >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <polyline points="16 17 21 12 16 7" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <line x1="21" y1="12" x2="9" y2="12" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
           </svg>
           Sign Out
-        </button>
+          </button>
+        </SignOutButton>
       </div>
     </div>
   );

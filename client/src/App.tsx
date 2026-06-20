@@ -1,9 +1,12 @@
 import { Switch, Route, useLocation } from "wouter";
 import { useEffect } from "react";
+import { useAuth } from "@clerk/react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthTokenBridge } from "@/components/AuthTokenBridge";
+import { isOnboarded } from "@/lib/auth-fetch";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/Layout";
 
@@ -25,8 +28,8 @@ import Resources from "@/pages/Resources";
 import Emergency from "@/pages/Emergency";
 import AIChat from "@/pages/AIChat";
 import Login from "@/pages/Login";
+import SignUpPage from "@/pages/SignUp";
 import Onboarding from "@/pages/Onboarding";
-import VerifyEmail from "@/pages/VerifyEmail";
 
 const STANDALONE_BG = "linear-gradient(145deg, #c8f5ea 0%, #dcd8f9 50%, #fde4d8 100%)";
 
@@ -45,18 +48,40 @@ function StandaloneWrapper({ children }: { children: React.ReactNode }) {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
+  const { isLoaded, isSignedIn, userId } = useAuth();
 
   useEffect(() => {
-    const onboarded = localStorage.getItem("onboarded");
+    if (!isLoaded) return;
+
     const isAuthRoute =
       location === "/login" ||
-      location === "/onboarding" ||
-      location === "/verify-email" ||
-      location.startsWith("/auth/");
-    if (!onboarded && !isAuthRoute) {
+      location === "/sign-up" ||
+      location.startsWith("/login/") ||
+      location.startsWith("/sign-up/") ||
+      location === "/onboarding";
+
+    if (!isSignedIn && !isAuthRoute) {
       navigate("/login");
+      return;
     }
-  }, [location, navigate]);
+
+    if (isSignedIn && isAuthRoute && location !== "/onboarding") {
+      navigate(isOnboarded(userId) ? "/" : "/onboarding");
+      return;
+    }
+
+    if (isSignedIn && !isOnboarded(userId) && !isAuthRoute) {
+      navigate("/onboarding");
+    }
+  }, [isLoaded, isSignedIn, userId, location, navigate]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center text-slate-500">
+        Loading…
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }
@@ -65,12 +90,12 @@ function Router() {
   return (
     <AuthGuard>
       <Switch>
-        {/* Auth / onboarding — no Layout wrapper, full-screen */}
         <Route path="/login" component={Login} />
+        <Route path="/login/*" component={Login} />
+        <Route path="/sign-up" component={SignUpPage} />
+        <Route path="/sign-up/*" component={SignUpPage} />
         <Route path="/onboarding" component={Onboarding} />
-        <Route path="/verify-email" component={VerifyEmail} />
 
-        {/* Standalone screens */}
         <Route path="/checkin" component={CheckIn} />
         <Route path="/breathe" component={() => (
           <StandaloneWrapper>
@@ -100,7 +125,6 @@ function Router() {
         )} />
         <Route path="/ai-chat" component={AIChat} />
 
-        {/* Main app with bottom nav */}
         <Route>
           <Layout>
             <Switch>
@@ -126,6 +150,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <AuthTokenBridge />
         <Toaster />
         <Router />
       </TooltipProvider>

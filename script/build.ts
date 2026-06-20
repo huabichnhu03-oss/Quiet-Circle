@@ -24,7 +24,7 @@ const allowlist = [
   "passport",
   "passport-local",
   "pg",
-  "resend",
+  "@clerk/express",
   "stripe",
   "uuid",
   "ws",

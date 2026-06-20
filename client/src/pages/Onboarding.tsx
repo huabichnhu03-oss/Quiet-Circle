@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@clerk/react";
+import { markOnboarded } from "@/lib/auth-fetch";
 
 const PASTEL_BG = "linear-gradient(160deg, #ede9fe 0%, #fce7f3 60%, #dbeafe 100%)";
 
@@ -119,6 +121,7 @@ function IconFeatureCommunity({ size = 22 }: { size?: number }) {
 
 export default function Onboarding() {
   const [, navigate] = useLocation();
+  const { userId } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
@@ -130,11 +133,13 @@ export default function Onboarding() {
   };
 
   const handleFinish = () => {
-    localStorage.setItem("onboarded", "true");
-    localStorage.setItem(
-      "onboarding_data",
-      JSON.stringify({ topics: selectedTopics, mood: selectedMood })
-    );
+    if (userId) {
+      markOnboarded(userId);
+      localStorage.setItem(
+        `onboarding_data_${userId}`,
+        JSON.stringify({ topics: selectedTopics, mood: selectedMood }),
+      );
+    }
     navigate("/");
   };
 

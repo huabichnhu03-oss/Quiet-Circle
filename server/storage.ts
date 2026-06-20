@@ -112,6 +112,7 @@ export class MemStorage implements IStorage {
       id,
       createdAt: new Date(),
       name: insertUser.name ?? null,
+      clerkId: insertUser.clerkId ?? null,
       passwordHash: insertUser.passwordHash ?? null,
       passwordSalt: insertUser.passwordSalt ?? null,
       emailVerified: insertUser.emailVerified ?? false,

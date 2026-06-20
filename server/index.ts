@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import { clerkMiddleware } from "@clerk/express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -22,6 +23,14 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+if (process.env.CLERK_SECRET_KEY) {
+  app.use(clerkMiddleware());
+} else {
+  console.warn(
+    "[clerk] CLERK_SECRET_KEY not set — API auth will reject all protected routes.",
+  );
+}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
