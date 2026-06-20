@@ -1,78 +1,144 @@
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import {
-  IconHome,
-  IconJournal,
-  IconResources,
-  IconSafety,
-  IconProfile,
-} from "@/components/Icons";
+import { BookOpen, Home, Layers, Radio, Users } from "lucide-react";
+import { BrandHeader } from "@/components/BrandHeader";
+import { NavDrawer } from "@/components/NavDrawer";
+import { PhoneShell } from "@/components/PhoneShell";
 
-const navItems = [
-  { id: "home", label: "Home", Icon: IconHome, href: "/" },
-  { id: "journals", label: "Journal", Icon: IconJournal, href: "/journals" },
-  { id: "explore", label: "Explore", Icon: IconResources, href: "/community" },
-  { id: "safety", label: "Safety", Icon: IconSafety, href: "/contacts" },
-  { id: "profile", label: "Profile", Icon: IconProfile, href: "/profile" },
+type NavTab = {
+  id: string;
+  label: string;
+  href: string;
+  match: (path: string) => boolean;
+  center?: boolean;
+};
+
+const navItems: NavTab[] = [
+  {
+    id: "home",
+    label: "Home",
+    href: "/",
+    match: (path) => path === "/",
+  },
+  {
+    id: "journal",
+    label: "Journal",
+    href: "/journals",
+    match: (path) => path.startsWith("/journals") || path === "/entries",
+  },
+  {
+    id: "signal",
+    label: "Signal",
+    href: "/emergency",
+    match: (path) =>
+      path.startsWith("/emergency") ||
+      path.startsWith("/contacts") ||
+      path === "/crisis",
+    center: true,
+  },
+  {
+    id: "community",
+    label: "Community",
+    href: "/community",
+    match: (path) => path.startsWith("/community"),
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    href: "/resources",
+    match: (path) => path.startsWith("/resources"),
+  },
 ];
-
-const PASTEL_BG = "linear-gradient(145deg, #c8f5ea 0%, #dcd8f9 50%, #fde4d8 100%)";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="min-h-[100dvh] overflow-hidden flex items-start justify-center bg-gray-100">
-      <div
-        className="relative w-full max-w-[430px] h-[100dvh] flex flex-col overflow-hidden shadow-2xl"
-        style={{ background: PASTEL_BG }}
-      >
-        <main className="flex-1 overflow-y-auto overscroll-contain pb-[80px]">
-          {children}
-        </main>
+    <PhoneShell>
+      <BrandHeader onMenuClick={() => setDrawerOpen(true)} />
+      <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-        <nav
-          data-testid="bottom-nav"
-          className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50"
-          style={{
-            background: "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderTop: "1px solid rgba(255,255,255,0.6)",
-            boxShadow: "0 -4px 24px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div className="flex items-center justify-around px-1 py-2">
-            {navItems.map(({ id, label, Icon, href }) => {
-              const isActive = location === href;
+      <main className="flex-1 overflow-y-auto overscroll-contain pb-[calc(88px+var(--app-safe-bottom))]">
+        {children}
+      </main>
+
+      <nav
+        data-testid="bottom-nav"
+        className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 border-t border-[var(--app-border)] bg-[var(--app-nav-bg)]"
+        style={{ paddingBottom: "var(--app-safe-bottom)" }}
+      >
+        <div className="flex items-end justify-around px-2 pt-1.5 pb-2">
+          {navItems.map((item) => {
+            const isActive = item.match(location);
+
+            if (item.center) {
               return (
-                <Link key={id} href={href}>
+                <Link key={item.id} href={item.href}>
                   <button
-                    data-testid={`nav-${id}`}
-                    className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-300"
+                    type="button"
+                    data-testid="nav-signal"
+                    className="flex flex-col items-center gap-0.5 -mt-4"
                   >
                     <div
-                      className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                        isActive ? "bg-gray-900" : "bg-transparent"
+                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-colors ${
+                        isActive ? "bg-[var(--app-accent)]" : "bg-[var(--app-primary)]"
                       }`}
                     >
-                      <Icon size={18} active={isActive} />
+                      <Radio className="w-5 h-5 text-white" />
                     </div>
                     <span
-                      className={`text-[9px] font-semibold transition-colors duration-300 ${
-                        isActive ? "text-gray-900" : "text-slate-600"
+                      className={`text-[9px] font-semibold ${
+                        isActive
+                          ? "text-[var(--app-accent)]"
+                          : "text-[var(--app-muted)]"
                       }`}
                     >
-                      {label}
+                      {item.label}
                     </span>
                   </button>
                 </Link>
               );
-            })}
-          </div>
-        </nav>
-      </div>
-    </div>
+            }
+
+            const Icon =
+              item.id === "home"
+                ? Home
+                : item.id === "journal"
+                  ? BookOpen
+                  : item.id === "community"
+                    ? Users
+                    : Layers;
+
+            return (
+              <Link key={item.id} href={item.href}>
+                <button
+                  type="button"
+                  data-testid={`nav-${item.id}`}
+                  className="flex flex-col items-center gap-0.5 py-0.5 px-2"
+                >
+                  <Icon
+                    className={`w-[18px] h-[18px] ${
+                      isActive
+                        ? "text-[var(--app-accent)]"
+                        : "text-[var(--app-muted)]"
+                    }`}
+                  />
+                  <span
+                    className={`text-[9px] font-semibold ${
+                      isActive
+                        ? "text-[var(--app-accent)]"
+                        : "text-[var(--app-muted)]"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </PhoneShell>
   );
 }
-
-export { PASTEL_BG };
