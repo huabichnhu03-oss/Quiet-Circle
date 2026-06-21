@@ -1,6 +1,6 @@
+import { Heart } from "lucide-react";
 import { SignIn, SignUp } from "@clerk/react";
 import { useLocation } from "wouter";
-import { BrandLogo } from "@/components/BrandLogo";
 import { getEmbeddedClerkAppearance } from "@/lib/clerk-appearance";
 import { useClerkReady } from "@/hooks/use-clerk-ready";
 import { useTheme } from "@/hooks/use-theme";
@@ -41,8 +41,8 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
         <div className="w-full max-w-[min(100%,22rem)] min-w-0 mx-auto animate-fade-up box-border">
           <div className="text-center mb-3 sm:mb-4">
-            <div className="w-12 h-12 rounded-2xl mx-auto mb-2 flex items-center justify-center shadow-md overflow-hidden">
-              <BrandLogo size={48} />
+            <div className="w-12 h-12 rounded-2xl mx-auto mb-2 flex items-center justify-center shadow-md btn-gradient">
+              <Heart size={22} color="white" strokeWidth={1.75} />
             </div>
             <h1
               className="text-2xl font-bold text-[var(--app-text)] app-brand"
