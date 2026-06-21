@@ -59,84 +59,96 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <BrandHeader onMenuClick={() => setDrawerOpen(true)} />
       <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-      <main className="flex-1 overflow-y-auto overscroll-contain pb-[calc(88px+var(--app-safe-bottom))]">
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[calc(96px+var(--app-safe-bottom))]">
         {children}
       </main>
 
       <nav
         data-testid="bottom-nav"
-        className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 border-t border-[var(--app-border)] bg-[var(--app-nav-bg)]"
+        className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 pointer-events-none"
         style={{ paddingBottom: "var(--app-safe-bottom)" }}
       >
-        <div className="grid grid-cols-5 items-end px-2 pt-1.5 pb-2">
-          {navItems.map((item) => {
-            const isActive = item.match(location);
+        <div className="px-3 pb-3 pointer-events-auto">
+          <div className="rounded-full bg-white px-3 py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)]">
+            <div className="flex w-full items-center">
+              {navItems.map((item) => {
+                const isActive = item.match(location);
 
-            if (item.center) {
-              return (
-                <Link key={item.id} href={item.href}>
-                  <button
-                    type="button"
-                    data-testid="nav-signal"
-                    className="w-full flex flex-col items-center gap-0.5 -mt-4"
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-colors ${
-                        isActive ? "bg-[var(--app-accent)]" : "bg-[var(--app-primary)]"
-                      }`}
-                    >
-                      <Radio className="w-5 h-5 text-white" />
+                if (item.center) {
+                  return (
+                    <div key={item.id} className="flex min-w-0 flex-1 justify-center">
+                      <Link href={item.href} className="flex justify-center">
+                        <button
+                          type="button"
+                          data-testid="nav-signal"
+                          className="flex flex-col items-center gap-0.5 -mt-4"
+                        >
+                          <div
+                            className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-colors ${
+                              isActive ? "bg-[var(--app-accent)]" : "bg-[var(--app-primary)]"
+                            }`}
+                          >
+                            <Radio className="h-5 w-5 text-white" />
+                          </div>
+                          <span
+                            className={`text-[9px] font-semibold ${
+                              isActive
+                                ? "text-[var(--app-accent)]"
+                                : "text-[var(--app-muted)]"
+                            }`}
+                          >
+                            {item.label}
+                          </span>
+                        </button>
+                      </Link>
                     </div>
-                    <span
-                      className={`text-[9px] font-semibold ${
-                        isActive
-                          ? "text-[var(--app-accent)]"
-                          : "text-[var(--app-muted)]"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </button>
-                </Link>
-              );
-            }
+                  );
+                }
 
-            const Icon =
-              item.id === "home"
-                ? Home
-                : item.id === "journal"
-                  ? BookOpen
-                  : item.id === "community"
-                    ? Users
-                    : Layers;
+                const Icon =
+                  item.id === "home"
+                    ? Home
+                    : item.id === "journal"
+                      ? BookOpen
+                      : item.id === "community"
+                        ? Users
+                        : Layers;
 
-            return (
-              <Link key={item.id} href={item.href}>
-                <button
-                  type="button"
-                  data-testid={`nav-${item.id}`}
-                  className="w-full flex flex-col items-center gap-0.5 py-0.5 px-2"
-                >
-                  <Icon
-                    className={`w-[18px] h-[18px] ${
-                      isActive
-                        ? "text-[var(--app-accent)]"
-                        : "text-[var(--app-muted)]"
-                    }`}
-                  />
-                  <span
-                    className={`text-[9px] font-semibold ${
-                      isActive
-                        ? "text-[var(--app-accent)]"
-                        : "text-[var(--app-muted)]"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              </Link>
-            );
-          })}
+                return (
+                  <div key={item.id} className="flex min-w-0 flex-1 justify-center">
+                    <Link href={item.href} className="flex justify-center">
+                      <button
+                        type="button"
+                        data-testid={`nav-${item.id}`}
+                        className={`flex w-fit min-w-[48px] flex-col items-center gap-0.5 rounded-full px-2 py-1 transition-colors ${
+                          isActive
+                            ? "bg-[color-mix(in_srgb,var(--app-accent)_12%,transparent)]"
+                            : "bg-[color-mix(in_srgb,var(--app-text)_5%,transparent)]"
+                        }`}
+                      >
+                        <Icon
+                          className={`h-[18px] w-[18px] ${
+                            isActive
+                              ? "text-[var(--app-accent)]"
+                              : "text-[var(--app-text)]"
+                          }`}
+                        />
+                        <span
+                          className={`text-[9px] font-semibold ${
+                            isActive
+                              ? "text-[var(--app-accent)]"
+                              : "text-[var(--app-text)]"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </nav>
     </PhoneShell>

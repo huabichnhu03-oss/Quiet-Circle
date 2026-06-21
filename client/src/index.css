@@ -137,6 +137,11 @@ html:not([data-theme]) {
   font-style: var(--app-brand-style, normal);
 }
 
+.app-lora {
+  font-family: "Lora", serif;
+  font-style: italic;
+}
+
 .app-tag {
   background: var(--app-tag-bg);
   color: var(--app-primary);

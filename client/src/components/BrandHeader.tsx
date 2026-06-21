@@ -15,7 +15,7 @@ export function BrandHeader({ onMenuClick, rightSlot }: BrandHeaderProps) {
   return (
     <header
       className="relative flex items-center justify-center px-4 py-2 flex-shrink-0"
-      style={{ paddingTop: "calc(0.5rem + var(--app-safe-top))" }}
+      style={{ paddingTop: "calc(1rem + var(--app-safe-top))" }}
     >
       {onMenuClick ? (
         <div className="absolute left-4">

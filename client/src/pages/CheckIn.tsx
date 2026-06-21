@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { IconHeadphones, IconMenu, IconBell, IconSun } from "@/components/Icons";
+import { IconHeadphones, IconSun } from "@/components/Icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { NavDrawer } from "@/components/NavDrawer";
-import { PhoneShell } from "@/components/PhoneShell";
 import { CHECKIN_MOOD_MAP } from "@/lib/mood-utils";
 
 const moods = [
@@ -99,8 +97,6 @@ export default function CheckIn() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   const mutation = useMutation({
     mutationFn: (mood: string) => apiRequest("POST", "/api/mood-entries", { mood }),
     onSuccess: () => {
@@ -116,15 +112,8 @@ export default function CheckIn() {
   };
 
   return (
-    <PhoneShell>
-      <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-
-      <div className="flex flex-col flex-1 min-h-0">
-      {/* Top bar */}
-      <div
-        className="flex items-center justify-between px-4 sm:px-5 pt-4 pb-2"
-        style={{ paddingTop: "calc(1rem + var(--app-safe-top))" }}
-      >
+    <div className="flex min-h-full flex-col">
+      <div className="flex items-center px-4 pb-2 pt-2 sm:px-5">
         <button
           data-testid="button-close-checkin"
           onClick={() => setLocation("/")}
@@ -135,24 +124,6 @@ export default function CheckIn() {
             <path d="M18 6L6 18M6 6L18 18" stroke="#4b5563" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
         </button>
-        <div className="flex items-center gap-2">
-          <button
-            data-testid="button-menu"
-            onClick={() => setDrawerOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-2xl glass-card"
-          >
-            <IconMenu size={18} />
-          </button>
-          <button
-            type="button"
-            data-testid="button-bell"
-            onClick={() => setLocation("/notifications")}
-            className="w-9 h-9 flex items-center justify-center rounded-2xl glass-card"
-            aria-label="Notifications"
-          >
-            <IconBell size={18} />
-          </button>
-        </div>
       </div>
 
       {/* Header text */}
@@ -216,10 +187,7 @@ export default function CheckIn() {
       </div>
 
       {/* Submit button */}
-      <div
-        className="px-4 sm:px-8 pb-12 flex flex-col items-center gap-4"
-        style={{ paddingBottom: "calc(3rem + var(--app-safe-bottom))" }}
-      >
+      <div className="flex flex-col items-center gap-4 px-4 pb-8 sm:px-8">
         {selected && (
           <p className="text-sm text-[var(--app-muted)] animate-fade-in" data-testid="selected-label">
             Feeling{" "}
@@ -255,7 +223,6 @@ export default function CheckIn() {
           ))}
         </div>
       </div>
-      </div>
-    </PhoneShell>
+    </div>
   );
 }

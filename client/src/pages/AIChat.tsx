@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Send } from "lucide-react";
-import { PhoneShell } from "@/components/PhoneShell";
 import { IconBot } from "@/components/Icons";
 
 type ActionButton = { label: string; href: string };
@@ -113,11 +112,8 @@ export default function AIChat() {
   };
 
   return (
-    <PhoneShell>
-      <div
-        className="flex items-center gap-3 px-4 pt-5 pb-4 flex-shrink-0 glass-card rounded-none border-x-0 border-t-0"
-        style={{ paddingTop: "calc(1.25rem + var(--app-safe-top))" }}
-      >
+    <div className="flex min-h-full flex-col">
+      <div className="flex flex-shrink-0 items-center gap-3 border-x-0 border-t-0 px-4 pb-4 pt-2 glass-card rounded-none">
         <button
           data-testid="button-back"
           onClick={() => setLocation("/")}
@@ -191,10 +187,7 @@ export default function AIChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div
-        className="flex-shrink-0 px-4 py-3 flex items-center gap-3 glass-card rounded-none border-x-0 border-b-0"
-        style={{ paddingBottom: "calc(0.75rem + var(--app-safe-bottom))" }}
-      >
+      <div className="flex flex-shrink-0 items-center gap-3 border-x-0 border-b-0 px-4 py-3 glass-card rounded-none">
         <input
           ref={inputRef}
           data-testid="input-message"
@@ -216,6 +209,6 @@ export default function AIChat() {
           <Send size={16} color="white" strokeWidth={1.75} />
         </button>
       </div>
-    </PhoneShell>
+    </div>
   );
 }

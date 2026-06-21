@@ -18,7 +18,7 @@ export const Home = (): JSX.Element => {
       <div className="pt-1">
         <h1
           data-testid="headline"
-          className="text-[22px] font-bold text-[var(--app-text)] leading-tight"
+          className="text-[22px] font-bold text-[var(--app-text)] leading-tight app-lora"
         >
           Good Morning, {firstName}.
         </h1>

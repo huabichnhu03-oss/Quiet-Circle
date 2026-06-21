@@ -5,7 +5,6 @@ import { useUser } from "@clerk/react";
 import { type CommunityPost } from "@shared/schema";
 import { ChevronLeft } from "lucide-react";
 import { IconBookmark, IconHeart, IconMessageCircle, IconSearch } from "@/components/Icons";
-import { PhoneShell } from "@/components/PhoneShell";
 import { ItemActions } from "@/components/ItemActions";
 import { apiRequest } from "@/lib/queryClient";
 import { DEMO_COMMENTS_BY_USERNAME, commentTimeAgo } from "@/lib/demo-community";
@@ -124,11 +123,8 @@ export default function CommunityPostDetail() {
   });
 
   return (
-    <PhoneShell scrollable>
-      <div
-        className="px-4 sm:px-5 pt-8 pb-4 flex items-center gap-3 flex-shrink-0"
-        style={{ paddingTop: "calc(2rem + var(--app-safe-top))" }}
-      >
+    <div className="flex min-h-full flex-col">
+      <div className="flex flex-shrink-0 items-center gap-3 px-4 pb-4 pt-2 sm:px-5">
         <button
           data-testid="button-back"
           onClick={() => navigate("/community")}
@@ -342,6 +338,6 @@ export default function CommunityPostDetail() {
           </div>
         )}
       </div>
-    </PhoneShell>
+    </div>
   );
 }

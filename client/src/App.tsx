@@ -10,7 +10,6 @@ import { isOnboarded, markOnboarded } from "@/lib/auth-fetch";
 import { useClerkReady } from "@/hooks/use-clerk-ready";
 import { ThemeProvider } from "@/hooks/use-theme";
 import NotFound from "@/pages/not-found";
-import { PhoneShell } from "@/components/PhoneShell";
 import { Layout } from "@/components/Layout";
 
 import { Home } from "@/pages/Home";
@@ -36,17 +35,6 @@ import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
 import Onboarding from "@/pages/Onboarding";
 import Notifications from "@/pages/Notifications";
-
-
-function StandaloneWrapper({
-  children,
-  scrollable = true,
-}: {
-  children: React.ReactNode;
-  scrollable?: boolean;
-}) {
-  return <PhoneShell scrollable={scrollable}>{children}</PhoneShell>;
-}
 
 function isPublicAuthRoute(location: string) {
   return (
@@ -113,71 +101,30 @@ function Router() {
         <Route path="/sign-up/*" component={SignUpPage} />
         <Route path="/onboarding" component={Onboarding} />
 
-        <Route path="/checkin" component={CheckIn} />
-        <Route path="/breathe" component={() => (
-          <StandaloneWrapper>
-            <Breathe />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/journals/new" component={() => (
-          <StandaloneWrapper>
-            <NewJournalEntry />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/journals/:id/edit" component={() => (
-          <StandaloneWrapper>
-            <NewJournalEntry />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/community/new" component={() => (
-          <StandaloneWrapper>
-            <NewPost />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/community/:id/edit" component={() => (
-          <StandaloneWrapper>
-            <NewPost />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/community/:id" component={CommunityPostDetail} />
-        <Route path="/contacts/new" component={() => (
-          <StandaloneWrapper>
-            <AddContact />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/contacts/:id/edit" component={() => (
-          <StandaloneWrapper>
-            <AddContact />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/emergency/active/:contactId" component={() => (
-          <StandaloneWrapper scrollable={false}>
-            <SignalActive />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/companion/alert/:contactId" component={() => (
-          <StandaloneWrapper scrollable={false}>
-            <CompanionAlert />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/emergency" component={() => (
-          <StandaloneWrapper>
-            <Emergency />
-          </StandaloneWrapper>
-        )} />
-        <Route path="/ai-chat" component={AIChat} />
-
         <Route>
           <Layout>
             <Switch>
               <Route path="/" component={Home} />
+              <Route path="/checkin" component={CheckIn} />
+              <Route path="/breathe" component={Breathe} />
+              <Route path="/journals/new" component={NewJournalEntry} />
+              <Route path="/journals/:id/edit" component={NewJournalEntry} />
               <Route path="/journals" component={Journals} />
               <Route path="/entries" component={Entries} />
               <Route path="/insights" component={Insights} />
+              <Route path="/community/new" component={NewPost} />
+              <Route path="/community/:id/edit" component={NewPost} />
+              <Route path="/community/:id" component={CommunityPostDetail} />
               <Route path="/community" component={Community} />
+              <Route path="/contacts/new" component={AddContact} />
+              <Route path="/contacts/:id/edit" component={AddContact} />
               <Route path="/contacts" component={Contacts} />
               <Route path="/crisis" component={Crisis} />
+              <Route path="/emergency/active/:contactId" component={SignalActive} />
+              <Route path="/companion/alert/:contactId" component={CompanionAlert} />
+              <Route path="/emergency" component={Emergency} />
               <Route path="/resources" component={Resources} />
+              <Route path="/ai-chat" component={AIChat} />
               <Route path="/profile" component={Profile} />
               <Route path="/notifications" component={Notifications} />
               <Route component={NotFound} />
